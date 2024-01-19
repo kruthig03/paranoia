@@ -70,18 +70,21 @@ win = visual.Window(
     allowGUI=False,
     colorSpace='rgb255',
     monitor='55w_60dist', 
-    color="black"
+    color="gray"
 )
 win.mouseVisible = False
 
 # Setup central circle
-dotCentralWhite = visual.Circle(
+crossCentralBlack = visual.TextStim(
     win=win, 
-    name='dotCentralWhite',
-    radius=10, edges=32, units='pix',
+    name='crossCentralBlack',
+    text='+',
+    font='Arial',
     pos=[0, 0],
-    fillColor='white', 
-    color='white', 
+    height=40 ,
+    bold=True,
+    color='black',
+    units='pix',
     colorSpace='rgb'
 )
 
@@ -199,7 +202,7 @@ startInstructions = visual.TextStim(
     name = 'instrStart',
     text='Welcome! Press [Enter] to start the experiment.',
     font='Arial',
-    pos=[0, 0], height=32, color='white', units='pix', colorSpace='named',
+    pos=[0, 0], height=36, color='black', units='pix', colorSpace='named',
     wrapWidth=win.size[0] * .9
 )
 
@@ -209,7 +212,7 @@ waitInstructions = visual.TextStim(
     name = 'instrWait',
     text='Please wait for the experimenter.',
     font='Arial',
-    pos=[0, 0], height=32, color='white', units='pix', colorSpace='named',
+    pos=[0, 0], height=36, color='black', units='pix', colorSpace='named',
     wrapWidth=win.size[0] * .9
 )
 
@@ -217,9 +220,9 @@ waitInstructions = visual.TextStim(
 paranoiaIntroInstructions = visual.TextStim(
     win=win,
     name='instrVideoIntro',
-    text="In this study, you will be listening to a story. \n The story is just over 20 minutes long in total. Following the story, you will be asked to recount what you heard. \n\n\n\n\n\nPress ENTER to continue",
+    text="In this study, you will be listening to a story. \n The story is just over 20 minutes long in total. \n Following the story, you will be asked to recount what you heard. \n\n\n\n\n\nPress ENTER to continue",
     font='Arial',
-    pos=[0, 0], height=24, color='white', units='pix', colorSpace='rgb',
+    pos=[0, 0], height=36, color='black', units='pix', colorSpace='rgb',
     wrapWidth=win.size[0] * 0.9
 )
 
@@ -229,7 +232,7 @@ paranoiaReadyInstructions = visual.TextStim(
     name='instrVideoReady',
     text='While listening to the story, please try to keep your head as still as possible and refrain from moving. \n\nPlease stare at the cross in the center of the screen for the duration of the piece.\n\n Press [Enter] when you are ready to begin.',
     font='Arial',
-    pos=[0, 0], height=32, color='white', units='pix', colorSpace='named',
+    pos=[0, 0], height=32, color='black', units='pix', colorSpace='named',
     wrapWidth=win.size[0] * .9
 )
 
@@ -239,17 +242,17 @@ breakInstructions = visual.TextStim(
     name='instrBreak',
     text="You are done the listening portion of the experiment. Please feel free to take a short break. \nWhenever you are ready, press ENTER to continue",
     font='Arial',
-    pos=[0, 0], height=24, color='white', units='pix', colorSpace='rgb',
-    wrapWidth=win.size[0] * 0.9
+    pos=[0, 0], height=36, color='black', units='pix', colorSpace='rgb',
+    wrapWidth=win.size[0] * 0.7
 )
 
 # Instruction: Record intro
 recordIntroInstructions = visual.TextStim(
     win=win,
     name='instrRecordIntro',
-    text="Now, we would like you to recount, in your own words, the events of the story in the original order they were experienced in, with as much detail as possible. \n\nSpeak for at least 10 min if possible -- but the longer the better. \nPlease verbally indicate when you are finished by saying, for example, \"I'm done.\" \n\nCompleteness and detail are more important than temporal order. \nIf at any point you realized that you missed something, feel free to return to it. \n\n\n\nPress ENTER to begin audio recording \n(The microphone will automatically turn on after you press Enter; please do NOT touch/move the microphone. There will be a white dot on the screen during recording. When you are finished speaking, press Enter again to stop recording.)",
+    text="Now, we would like you to recount, in your own words, \nthe events of the story in the original order they were experienced in, with as much detail as possible. \n\nSpeak for at least 10 min if possible -- but the longer the better. \nPlease verbally indicate when you are finished by saying, for example, \"I'm done.\" \n\nCompleteness and detail are more important than temporal order. \nIf at any point you realized that you missed something, feel free to return to it. \n\n\n\nPress ENTER to begin audio recording \n(The microphone will automatically turn on after you press Enter; please do NOT touch/move the microphone. There will be a white dot on the screen during recording. When you are finished speaking, press Enter again to stop recording.)",
     font='Arial',
-    pos=[0, 0], height=24, color='white', units='pix', colorSpace='rgb',
+    pos=[0, 0], height=32, color='black', units='pix', colorSpace='rgb',
     wrapWidth=win.size[0] * 0.3
 )
 
@@ -259,7 +262,7 @@ finishInstructions = visual.TextStim(
     name='instrFinish',
     text="Thank you for your participation! \n\n\n\n\n Please let the experimenter know you have finished!",
     font='Arial',
-    pos=[0, 0], height=24, color='white', units='pix', colorSpace='rgb',
+    pos=[0, 0], height=36, color='black', units='pix', colorSpace='rgb',
     wrapWidth=win.size[0] * 0.9
 )
 
@@ -297,26 +300,29 @@ paranoiaReadyInstructions.draw()
 win.flip()
 keys = event.waitKeys(keyList=["return"])
 
-# Record start time
-dfTimeStamps.loc[0, 'storyStart'] = mainExpClock.getTime()
-dfTimeStamps.to_csv(filename + '_timestamps.csv', index=False)  # Save partial data
-
 # ==============================
 # Send story start message to ET
 # ==============================
 if ET == 1:
     tracker.sendMessage("STORY_START")
+    dfTimeStamps.loc[0, 'eyetrackerStart'] = mainExpClock.getTime()
 
 # ==============
 # Begin stimulus
 # ==============
-# Show the white dot
-dotCentralWhite.draw()
+
+# Show the black cross
+crossCentralBlack.draw()
 win.flip()
+
+# Record start time
+dfTimeStamps.loc[0, 'storyStart'] = mainExpClock.getTime()
+dfTimeStamps.to_csv(filename + '_timestamps.csv', index=False)  # Save partial data
 
 # Play audio
 paranoia.play()
 paused = False
+pause_count = 0
 
 # Keep the dot until the audio finishes playing
 while paranoia.status == PLAYING or paused:
@@ -333,13 +339,18 @@ while paranoia.status == PLAYING or paused:
         if not paused:
             # Pause the audio
             paranoia.pause()
+            dfTimeStamps.loc[pause_count, 'storyPause'] = mainExpClock.getTime()
+            dfTimeStamps.to_csv(filename + '_timestamps.csv', index=False)  # Save partial data
             paused = True
         else:
             paranoia.play()
+            dfTimeStamps.loc[pause_count, 'storyRestart'] = mainExpClock.getTime()
+            dfTimeStamps.to_csv(filename + '_timestamps.csv', index=False)  # Save partial data
             paused = False
+            pause_count +=1
             
     # Redraw the dot to keep on screen
-    dotCentralWhite.draw()
+    crossCentralBlack.draw()
     win.flip()
     
     # Keep window open until audio finishes playing 
