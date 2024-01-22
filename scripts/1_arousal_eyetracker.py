@@ -81,7 +81,7 @@ crossCentralBlack = visual.TextStim(
     text='+',
     font='Arial',
     pos=[0, 0],
-    height=40 ,
+    height=46 ,
     bold=True,
     color='black',
     units='pix',
@@ -171,9 +171,9 @@ def start_calibration():
         # Calibration instructions
         calibration = visual.TextStim(
             win=win, 
-            text='Please follow the circle on the next screen. Please wait for the experimenter to start.',
+            text='Please follow the circle on the next screen. /n/nPlease wait for the experimenter to start.',
             font='Arial',
-            pos=[0, 0], height=32,color='black', units='pix', colorSpace='named',
+            pos=[0, 0], height=36,color='black', units='pix', colorSpace='named',
             wrapWidth=win.size[0] * .9
         )
         
@@ -200,7 +200,7 @@ def start_calibration():
 startInstructions = visual.TextStim(
     win=win, 
     name = 'instrStart',
-    text='Welcome! Press [Enter] to start the experiment.',
+    text='Welcome! Press ENTER to start the experiment.',
     font='Arial',
     pos=[0, 0], height=36, color='black', units='pix', colorSpace='named',
     wrapWidth=win.size[0] * .9
@@ -230,9 +230,9 @@ paranoiaIntroInstructions = visual.TextStim(
 paranoiaReadyInstructions = visual.TextStim(
     win=win, 
     name='instrVideoReady',
-    text='While listening to the story, please try to keep your head as still as possible and refrain from moving. \n\nPlease stare at the cross in the center of the screen for the duration of the piece.\n\n Press [Enter] when you are ready to begin.',
+    text='While listening to the story,\nplease try to keep your head as still as possible and refrain from moving. \nPlease stare at the cross in the center of the screen for the duration of the piece.\n\n\n Press ENTER when you are ready to begin.',
     font='Arial',
-    pos=[0, 0], height=32, color='black', units='pix', colorSpace='named',
+    pos=[0, 0], height=36, color='black', units='pix', colorSpace='named',
     wrapWidth=win.size[0] * .9
 )
 
@@ -240,7 +240,7 @@ paranoiaReadyInstructions = visual.TextStim(
 breakInstructions = visual.TextStim(
     win=win,
     name='instrBreak',
-    text="You are done the listening portion of the experiment. Please feel free to take a short break. \nWhenever you are ready, press ENTER to continue",
+    text="You are done the listening portion of the experiment.\n Please feel free to take a short break. \n\n\nWhenever you are ready, press ENTER to continue",
     font='Arial',
     pos=[0, 0], height=36, color='black', units='pix', colorSpace='rgb',
     wrapWidth=win.size[0] * 0.7
@@ -250,9 +250,9 @@ breakInstructions = visual.TextStim(
 recordIntroInstructions = visual.TextStim(
     win=win,
     name='instrRecordIntro',
-    text="Now, we would like you to recount, in your own words, \nthe events of the story in the original order they were experienced in, with as much detail as possible. \n\nSpeak for at least 10 min if possible -- but the longer the better. \nPlease verbally indicate when you are finished by saying, for example, \"I'm done.\" \n\nCompleteness and detail are more important than temporal order. \nIf at any point you realized that you missed something, feel free to return to it. \n\n\n\nPress ENTER to begin audio recording \n(The microphone will automatically turn on after you press Enter; please do NOT touch/move the microphone. There will be a white dot on the screen during recording. When you are finished speaking, press Enter again to stop recording.)",
+    text="Now, we would like you to recount, in your own words, \nthe events of the story in the original order they were experienced in, with as much detail as possible. \n\nSpeak for at least 10 min if possible -- but the longer the better. \nPlease verbally indicate when you are finished by saying, for example, \"I'm done.\" \n\nCompleteness and detail are more important than temporal order. \nIf at any point you realized that you missed something, feel free to return to it. \n\n\nPress ENTER to begin audio recording \n\n(The microphone will automatically turn on after you press Enter; please do NOT touch/move the microphone. There will be a black cross on the screen, keep your eyes on it during recording. When you are finished speaking, press Enter again to stop recording.)",
     font='Arial',
-    pos=[0, 0], height=32, color='black', units='pix', colorSpace='rgb',
+    pos=[0, 0], height=36, color='black', units='pix', colorSpace='rgb',
     wrapWidth=win.size[0] * 0.3
 )
 
@@ -391,7 +391,7 @@ if ET == 1:
     tracker.sendMessage("REC_START")
 
 # show central white dot during recording
-dotCentralWhite.draw()
+crossCentralBlack.draw()
 win.flip()
 keys = event.waitKeys(keyList=["return"])
 
