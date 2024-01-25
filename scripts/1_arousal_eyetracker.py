@@ -1,5 +1,5 @@
 # Authors: Kruthi Gollapudi (kruthig@uchicago.edu), Jadyn Park (jadynpark@uchicago.edu)
-# Last Edited: Jan 19, 2024
+# Last Edited: Jan 25, 2024
 # Description: Task script adopted from Kannon Bhattacharyya and Zishan Su.
 # The script continuously records eyetracking data while showing visual 
 # stimulus and recording verbal responses.
@@ -29,7 +29,7 @@ paranoia_length = 1320 # Length of stim in seconds
 # Toggle tracker: 
 # 1=Eyelink, 2=Mouse (with calibration), 0=Skip calibration
 # =========================================================
-ET = 0
+ET = 1
 
 # ====================================
 # Toggle kill switch:
@@ -41,7 +41,7 @@ KS = 1
 # Toggle voice recording:
 # 0=Don't record, 1=Record
 # =============================
-REC = 0
+REC = 1
 
 #------------------------------- Initialize -------------------------------#
 
@@ -111,26 +111,16 @@ dfTimeStamps.to_csv(filename + '_timestamps.csv', index=False)
 
 #------------------------- Experiment Settings ----------------------------#
 
-devicesConfig = {}
-io = launchHubServer(window=win, **devicesConfig)
-
-# ===========
-# iohub setup
-# ===========
-keyboard = io.getDevice('keyboard')
-kb = Keyboard(waitForStart=True) # JP: clock?
-tracker = io.getDevice('tracker')
-
 # =================
 # Microphone setup
 # =================
 
-if REC == 1: # JP: ask YC about mic
+if REC == 1: 
     recordingDevicesList = Microphone.getDevices()
-    device=recordingDevicesList[0]
+    device=recordingDevicesList[1] # Double check that this corresponds to the external mic!
     mic = Microphone(streamBufferSecs=3000.0,
                         sampleRateHz=48000,
-                        device=recordingDevicesList[0],
+                        device=recordingDevicesList[1],
                         channels=1,
                         maxRecordingSize=300000,
                         audioRunMode=0
@@ -145,7 +135,6 @@ if ET == 1:
     TRACKER = 'eyelink'
     eyetracker_config = dict(name='tracker')
     devices_config = {}
-    
     eyetracker_config['model_name'] = 'EYELINK 1000 DESKTOP'
     eyetracker_config['runtime_settings'] = dict(sampling_rate=500, track_eyes='RIGHT')
     devices_config['eyetracker.hw.sr_research.eyelink.EyeTracker'] = eyetracker_config
@@ -153,6 +142,14 @@ if ET == 1:
     
     win.setMouseVisible(False)
 
+io = launchHubServer(window=win, **devices_config)
+
+# ===========
+# iohub setup
+# ===========
+keyboard = io.getDevice('keyboard')
+kb = Keyboard(waitForStart=True) # JP: clock?
+tracker = io.getDevice('tracker')
 
 # =====================
 # Quit experiment setup
@@ -171,13 +168,13 @@ def start_calibration():
         # Calibration instructions
         calibration = visual.TextStim(
             win=win, 
-            text='Please follow the circle on the next screen. /n/nPlease wait for the experimenter to start.',
+            text='Please follow the circle on the next screen. \n\n Please wait for the experimenter to start.',
             font='Arial',
             pos=[0, 0], height=36,color='black', units='pix', colorSpace='named',
             wrapWidth=win.size[0] * .9
         )
         
-        # Draw text stimulus and wait until "g" is pressed
+        # Draw text stimulus and wait until "enter" is pressed
         calibration.draw()
         win.flip()
         event.waitKeys(keyList=["return"])
@@ -247,10 +244,19 @@ breakInstructions = visual.TextStim(
 )
 
 # Instruction: Record intro
-recordIntroInstructions = visual.TextStim(
+recordIntroInstructions1 = visual.TextStim(
     win=win,
-    name='instrRecordIntro',
-    text="Now, we would like you to recount, in your own words, \nthe events of the story in the original order they were experienced in, with as much detail as possible. \n\nSpeak for at least 10 min if possible -- but the longer the better. \nPlease verbally indicate when you are finished by saying, for example, \"I'm done.\" \n\nCompleteness and detail are more important than temporal order. \nIf at any point you realized that you missed something, feel free to return to it. \n\n\nPress ENTER to begin audio recording \n\n(The microphone will automatically turn on after you press Enter; please do NOT touch/move the microphone. There will be a black cross on the screen, keep your eyes on it during recording. When you are finished speaking, press Enter again to stop recording.)",
+    name='instrRecordIntro1',
+    text="Now, we would like you to recount, in your own words, \nthe events of the story in the original order they were experienced in, with as much detail as possible. \n\nSpeak for at least 10 min if possible -- but the longer the better. \nPlease verbally indicate when you are finished by saying, for example, \"I'm done.\" \n\n Press ENTER to continue.",
+    font='Arial',
+    pos=[0, 0], height=36, color='black', units='pix', colorSpace='rgb',
+    wrapWidth=win.size[0] * 0.3
+)
+
+recordIntroInstructions2 = visual.TextStim(
+    win=win,
+    name='instrRecordIntro2',
+    text="Completeness and detail are more important than temporal order. \nIf at any point you realized that you missed something, feel free to return to it. \n\n\nPress ENTER to begin audio recording \n\n(The microphone will automatically turn on after you press Enter; please do NOT touch/move the microphone. \nThere will be a black cross on the screen, keep your eyes on it during recording. \nWhen you are finished speaking, press Enter again to stop recording.)",
     font='Arial',
     pos=[0, 0], height=36, color='black', units='pix', colorSpace='rgb',
     wrapWidth=win.size[0] * 0.3
@@ -305,7 +311,7 @@ keys = event.waitKeys(keyList=["return"])
 # ==============================
 if ET == 1:
     tracker.sendMessage("STORY_START")
-    dfTimeStamps.loc[0, 'eyetrackerStart'] = mainExpClock.getTime()
+    dfTimeStamps.loc[0, 'startETStory'] = mainExpClock.getTime()
 
 # ==============
 # Begin stimulus
@@ -333,7 +339,7 @@ while paranoia.status == PLAYING or paused:
     # To end audio
     if 'k' in keys: # K for kill
         if KS == 1:
-            paranoia.stop(reset=True, log=True)
+            paranoia.stop(reset=True)
             break
     elif 'p' in keys: # P for pause
         if not paused:
@@ -366,6 +372,7 @@ dfTimeStamps.to_csv(filename + '_timestamps.csv', index=False)  # save partial d
 # ============================
 if ET == 1:
     tracker.sendMessage("STORY_END")
+    dfTimeStamps.loc[0, 'endETStory'] = mainExpClock.getTime()
 
 # show instruction: break
 breakInstructions.draw()
@@ -373,9 +380,20 @@ win.flip()
 keys = event.waitKeys(keyList=["return"])
 
 # show instruction: record intro
-recordIntroInstructions.draw()
+recordIntroInstructions1.draw()
 win.flip()
 keys = event.waitKeys(keyList=["return"])
+
+recordIntroInstructions2.draw()
+win.flip()
+keys = event.waitKeys(keyList=["return"])
+
+# ==================================
+# Send recording start message to ET
+# ==================================
+if ET == 1:
+    tracker.sendMessage("REC_START")
+    dfTimeStamps.loc[0, 'startETVoiceRec'] = mainExpClock.getTime()
 
 # start recording
 mic.start()
@@ -383,12 +401,6 @@ mic.start()
 # record start time
 dfTimeStamps.loc[0,'recordStart'] = mainExpClock.getTime()
 dfTimeStamps.to_csv(filename + '_timestamps.csv', index=False)  # save partial data
-
-# ==================================
-# Send recording start message to ET
-# ==================================
-if ET == 1:
-    tracker.sendMessage("REC_START")
 
 # show central white dot during recording
 crossCentralBlack.draw()
@@ -399,7 +411,7 @@ keys = event.waitKeys(keyList=["return"])
 mic.stop()
 
 # record end time
-dfTimeStamps.loc[2,'recordEnd'] = mainExpClock.getTime()
+dfTimeStamps.loc[0,'recordEnd'] = mainExpClock.getTime()
 dfTimeStamps.to_csv(filename + '_timestamps.csv', index=False)  # save data
 
 # ==================================
@@ -407,6 +419,7 @@ dfTimeStamps.to_csv(filename + '_timestamps.csv', index=False)  # save data
 # ==================================
 if ET == 1:
     tracker.sendMessage("REC_END")
+    dfTimeStamps.loc[0, 'endETVoiceRec'] = mainExpClock.getTime()
 
 # save audio
 audioClip = mic.getRecording()
