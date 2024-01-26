@@ -1,5 +1,5 @@
 # Authors: Kruthi Gollapudi (kruthig@uchicago.edu), Jadyn Park (jadynpark@uchicago.edu)
-# Last Edited: Jan 25, 2024
+# Last Edited: Jan 26, 2024
 # Description: Task script adopted from Kannon Bhattacharyya and Zishan Su.
 # The script continuously records eyetracking data while showing visual 
 # stimulus and recording verbal responses.
@@ -29,7 +29,7 @@ paranoia_length = 1320 # Length of stim in seconds
 # Toggle tracker: 
 # 1=Eyelink, 2=Mouse (with calibration), 0=Skip calibration
 # =========================================================
-ET = 1
+ET = 0
 
 # ====================================
 # Toggle kill switch:
@@ -50,7 +50,7 @@ _thisDir = os.path.dirname(os.path.abspath(__file__))
 os.chdir(_thisDir)
 
 # Store info about the experiment session
-psychopyVersion = 'v2022.2.5'
+psychopyVersion = 'v2021.2.3'
 expName = 'paranoia'
 expInfo = {'participant': ''}
 
@@ -81,7 +81,7 @@ crossCentralBlack = visual.TextStim(
     text='+',
     font='Arial',
     pos=[0, 0],
-    height=46 ,
+    height=48,
     bold=True,
     color='black',
     units='pix',
@@ -117,10 +117,10 @@ dfTimeStamps.to_csv(filename + '_timestamps.csv', index=False)
 
 if REC == 1: 
     recordingDevicesList = Microphone.getDevices()
-    device=recordingDevicesList[1] # Double check that this corresponds to the external mic!
+    device=recordingDevicesList[0] # Double check that this corresponds to the external mic!
     mic = Microphone(streamBufferSecs=3000.0,
                         sampleRateHz=48000,
-                        device=recordingDevicesList[1],
+                        device=recordingDevicesList[0],
                         channels=1,
                         maxRecordingSize=300000,
                         audioRunMode=0
@@ -131,10 +131,15 @@ if REC == 1:
 # Eyetracker setup
 # ================
 
+devices_config = {}
+
+## getting iohub startup error when eyetracker isn't connected yet still running using ET=1
+
 if ET == 1:
     TRACKER = 'eyelink'
     eyetracker_config = dict(name='tracker')
-    devices_config = {}
+    #devices_config = {}
+   
     eyetracker_config['model_name'] = 'EYELINK 1000 DESKTOP'
     eyetracker_config['runtime_settings'] = dict(sampling_rate=500, track_eyes='RIGHT')
     devices_config['eyetracker.hw.sr_research.eyelink.EyeTracker'] = eyetracker_config
@@ -168,7 +173,7 @@ def start_calibration():
         # Calibration instructions
         calibration = visual.TextStim(
             win=win, 
-            text='Please follow the circle on the next screen. \n\n Please wait for the experimenter to start.',
+            text='Now we will calibrate the eyetracker. \n\nPlease keep your head as still as possible and follow the circle on the next screen. \n\n Please wait for the experimenter to start.',
             font='Arial',
             pos=[0, 0], height=36,color='black', units='pix', colorSpace='named',
             wrapWidth=win.size[0] * .9
@@ -217,7 +222,7 @@ waitInstructions = visual.TextStim(
 paranoiaIntroInstructions = visual.TextStim(
     win=win,
     name='instrVideoIntro',
-    text="In this study, you will be listening to a story. \n The story is just over 20 minutes long in total. \n Following the story, you will be asked to recount what you heard. \n\n\n\n\n\nPress ENTER to continue",
+    text="In this study, you will be listening to a story. \n The story is just over 20 minutes long in total. \n Following the story, you will be asked to recount what you heard. \n\n\n\n\n\nPress ENTER to continue.",
     font='Arial',
     pos=[0, 0], height=36, color='black', units='pix', colorSpace='rgb',
     wrapWidth=win.size[0] * 0.9
@@ -227,7 +232,17 @@ paranoiaIntroInstructions = visual.TextStim(
 paranoiaReadyInstructions = visual.TextStim(
     win=win, 
     name='instrVideoReady',
-    text='While listening to the story,\nplease try to keep your head as still as possible and refrain from moving. \nPlease stare at the cross in the center of the screen for the duration of the piece.\n\n\n Press ENTER when you are ready to begin.',
+    text='While listening to the story,\nplease try to keep your head as still as possible and refrain from moving. \nPlease stare at the cross in the center of the screen for the duration of the piece.\n\n\n Press ENTER to continue.',
+    font='Arial',
+    pos=[0, 0], height=36, color='black', units='pix', colorSpace='named',
+    wrapWidth=win.size[0] * .9
+)
+
+# Instruction: Video ready
+paranoiaBeginInstructions = visual.TextStim(
+    win=win, 
+    name='instrVideoBegin',
+    text='Now, we will start the story listening part of the experiment. \n\n\n Press ENTER when you are ready to begin.',
     font='Arial',
     pos=[0, 0], height=36, color='black', units='pix', colorSpace='named',
     wrapWidth=win.size[0] * .9
@@ -237,26 +252,35 @@ paranoiaReadyInstructions = visual.TextStim(
 breakInstructions = visual.TextStim(
     win=win,
     name='instrBreak',
-    text="You are done the listening portion of the experiment.\n Please feel free to take a short break. \n\n\nWhenever you are ready, press ENTER to continue",
+    text="You are done with the listening portion of the experiment.\n Please feel free to take a short break. \n\n\nWhenever you are ready, press ENTER to continue.",
     font='Arial',
     pos=[0, 0], height=36, color='black', units='pix', colorSpace='rgb',
     wrapWidth=win.size[0] * 0.7
 )
 
 # Instruction: Record intro
-recordIntroInstructions1 = visual.TextStim(
+recordIntroInstructions = visual.TextStim(
     win=win,
-    name='instrRecordIntro1',
-    text="Now, we would like you to recount, in your own words, \nthe events of the story in the original order they were experienced in, with as much detail as possible. \n\nSpeak for at least 10 min if possible -- but the longer the better. \nPlease verbally indicate when you are finished by saying, for example, \"I'm done.\" \n\n Press ENTER to continue.",
+    name='instrRecordIntro',
+    text="Now, we would like you to recount, in your own words, \nthe events of the story in the original order they were experienced in, with as much detail as possible. \n\nSpeak for at least 10 min if possible -- but the longer the better. \n\nPlease verbally indicate when you are finished by saying, for example, \"I'm done.\" \n\n\n Press ENTER to continue.",
     font='Arial',
     pos=[0, 0], height=36, color='black', units='pix', colorSpace='rgb',
     wrapWidth=win.size[0] * 0.3
 )
 
-recordIntroInstructions2 = visual.TextStim(
+recordReadyInstructions = visual.TextStim(
     win=win,
-    name='instrRecordIntro2',
-    text="Completeness and detail are more important than temporal order. \nIf at any point you realized that you missed something, feel free to return to it. \n\n\nPress ENTER to begin audio recording \n\n(The microphone will automatically turn on after you press Enter; please do NOT touch/move the microphone. \nThere will be a black cross on the screen, keep your eyes on it during recording. \nWhen you are finished speaking, press Enter again to stop recording.)",
+    name='instrRecordReady',
+    text="Completeness and detail are more important than temporal order. \n\nIf at any point you realize that you missed something, feel free to return to it. \n\n\n Press ENTER to continue.",
+    font='Arial',
+    pos=[0, 0], height=36, color='black', units='pix', colorSpace='rgb',
+    wrapWidth=win.size[0] * 0.3
+)
+
+recordBeginInstructions = visual.TextStim(
+    win=win,
+    name='instrRecordBegin',
+    text="When you press ENTER to begin the recording portion of the experiment, the microphone will automatically turn on. \n\nPlease do NOT touch/move the microphone. \n\nThere will be a black cross on the screen, keep your eyes on it during recording. \n When you are finished speaking, press ENTER again to stop recording. \n\n\nPress ENTER to begin.",
     font='Arial',
     pos=[0, 0], height=36, color='black', units='pix', colorSpace='rgb',
     wrapWidth=win.size[0] * 0.3
@@ -303,6 +327,11 @@ keys = event.waitKeys(keyList=["return"])
 
 # Show instruction: Video ready
 paranoiaReadyInstructions.draw()
+win.flip()
+keys = event.waitKeys(keyList=["return"])
+
+# Show instruction: Video begin
+paranoiaBeginInstructions.draw()
 win.flip()
 keys = event.waitKeys(keyList=["return"])
 
@@ -380,11 +409,17 @@ win.flip()
 keys = event.waitKeys(keyList=["return"])
 
 # show instruction: record intro
-recordIntroInstructions1.draw()
+recordIntroInstructions.draw()
 win.flip()
 keys = event.waitKeys(keyList=["return"])
 
-recordIntroInstructions2.draw()
+# show instruction: record ready
+recordReadyInstructions.draw()
+win.flip()
+keys = event.waitKeys(keyList=["return"])
+
+# show instruction: record begin
+recordBeginInstructions.draw()
 win.flip()
 keys = event.waitKeys(keyList=["return"])
 
