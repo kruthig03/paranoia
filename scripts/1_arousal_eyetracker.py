@@ -64,7 +64,7 @@ expInfo['psychopyVersion'] = psychopyVersion
 
 # Setup the Window
 win = visual.Window(
-    size = [1920, 1080], fullscr=True,
+    size = [1280, 720], fullscr=True, # Orig = [1920, 1080]
     # screen=1,
     units='pix',
     allowGUI=False,
@@ -81,7 +81,7 @@ crossCentralBlack = visual.TextStim(
     text='+',
     font='Arial',
     pos=[0, 0],
-    height=48,
+    height=64,
     bold=True,
     color='black',
     units='pix',
@@ -265,7 +265,7 @@ recordIntroInstructions = visual.TextStim(
     text="Now, we would like you to recount, in your own words, \nthe events of the story in the original order they were experienced in, with as much detail as possible. \n\nSpeak for at least 10 min if possible -- but the longer the better. \n\nPlease verbally indicate when you are finished by saying, for example, \"I'm done.\" \n\n\n Press ENTER to continue.",
     font='Arial',
     pos=[0, 0], height=36, color='black', units='pix', colorSpace='rgb',
-    wrapWidth=win.size[0] * 0.3
+    wrapWidth=win.size[0] * 0.9
 )
 
 recordReadyInstructions = visual.TextStim(
@@ -274,16 +274,16 @@ recordReadyInstructions = visual.TextStim(
     text="Completeness and detail are more important than temporal order. \n\nIf at any point you realize that you missed something, feel free to return to it. \n\n\n Press ENTER to continue.",
     font='Arial',
     pos=[0, 0], height=36, color='black', units='pix', colorSpace='rgb',
-    wrapWidth=win.size[0] * 0.3
+    wrapWidth=win.size[0] * 0.9
 )
 
 recordBeginInstructions = visual.TextStim(
     win=win,
     name='instrRecordBegin',
-    text="When you press ENTER to begin the recording portion of the experiment, the microphone will automatically turn on. \n\nPlease do NOT touch/move the microphone. \n\nThere will be a black cross on the screen, keep your eyes on it during recording. \n When you are finished speaking, press ENTER again to stop recording. \n\n\nPress ENTER to begin.",
+    text="When you press ENTER to begin the recording portion of the experiment, \nthe microphone will automatically turn on. \n\nPlease do NOT touch/move the microphone. \n\nThere will be a black cross on the screen, keep your eyes on it during recording. \n When you are finished speaking, press ENTER again to stop recording. \n\n\nPress ENTER to begin.",
     font='Arial',
     pos=[0, 0], height=36, color='black', units='pix', colorSpace='rgb',
-    wrapWidth=win.size[0] * 0.3
+    wrapWidth=win.size[0] * 0.9
 )
 
 # Instruction: Finish
