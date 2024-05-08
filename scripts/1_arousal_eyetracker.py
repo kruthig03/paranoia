@@ -29,7 +29,7 @@ paranoia_length = 1320 # Length of stim in seconds
 # Toggle tracker: 
 # 1=Eyelink, 2=Mouse (with calibration), 0=Skip calibration
 # =========================================================
-ET = 0
+ET = 1
 
 # ====================================
 # Toggle kill switch:
@@ -50,7 +50,7 @@ _thisDir = os.path.dirname(os.path.abspath(__file__))
 os.chdir(_thisDir)
 
 # Store info about the experiment session
-psychopyVersion = 'v2021.2.3'
+psychopyVersion = 'v2022.2.5'
 expName = 'paranoia'
 expInfo = {'participant': ''}
 
@@ -453,6 +453,7 @@ dfTimeStamps.to_csv(filename + '_timestamps.csv', index=False)  # save data
 # Send recording end message to ET
 # ==================================
 if ET == 1:
+    print("test  print")
     tracker.sendMessage("REC_END")
     dfTimeStamps.loc[0, 'endETVoiceRec'] = mainExpClock.getTime()
 
@@ -480,7 +481,7 @@ if ET == 1:
 # Quit IO Hub
 io.quit()
 
-# Explort participant ET data
+# Export participant ET data
 if ET == 1:
     edf_root = ''
     edf_file = edf_root + '/' + filename + '.EDF'
