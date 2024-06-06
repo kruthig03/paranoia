@@ -7,8 +7,7 @@ import numpy as np
 import pandas as pd
 import os
 import scipy.io as sio
-import matplotlib.pyplot as plt
-from scipy.signal import butter, filtfilt
+import math
 
 
 # Set data directories
@@ -22,54 +21,42 @@ if not os.path.exists(save_path):
     os.makedirs(save_path)
 
 # Set range of subjects
-subj_ids = range(1002, 1003)
+subj_ids = range(1002, 1022)
 
 
-# Define butter lowpass filter
-def butter_lowpass_filter(data, cutoff, nyq, order):
+# Define iterative downsampling method
+
+def average_downsample(arr, downsample_factor):
     '''
-    Takes in data of certain sampling freq. and applies butter lowpass filter to downsample 
-    data to indicated cuttoff freq.
+    Perform downsampling of array by averaging across every n (downsampling_factor) elements
 
     Inputs:
+        - arr: (np.ndarray) of samples to downsample
+        - downsample_factor: (float) for every element to average across
 
     Outputs:
-
-
+        - averaged_array: (np.ndarray) of downsampled samples
     '''
-    normal_cutoff = cutoff / nyq
-    # Get the filter coefficients 
-    b, a = butter(order, normal_cutoff, btype='low', analog=False)
-    y = filtfilt(b, a, data)
-    return y
+    downsample_factor = int(downsample_factor)
 
-# Define other iterative downsampling method
+    # Calculate the number of elements to pad
+    pad_size = int((downsample_factor - len(arr) % downsample_factor) % downsample_factor)
 
-def iterative_filter(data, f_sample, cutoff):
-    '''
-    Takes in data of certain sampling freq. and downsamples by selecting and keeping
-    every f_sample/cuttoff sample from the data.
+    # Pad the array with NaNs
+    padded_array = np.pad(arr, (0, pad_size), mode='constant', constant_values=np.nan)
 
-    Inputs:
+    # Reshape the array to group by every factor
+    reshaped_array = padded_array.reshape(-1, downsample_factor)
 
-    Outputs:
+    # Compute the mean, ignoring NaNs
+    averaged_array = np.nanmean(reshaped_array, axis=1)
 
-    '''
-
-    # Calculate the downsampling factor
-    downsample_factor = f_sample // cutoff
-
-    # Downsample the data
-    downsampled_pupil_data = data[::downsample_factor]
-
-    return downsampled_pupil_data
+    return averaged_array
 
 
 # define freq. parameters
 f_sample = 500 
-f_cutoff = 60
-order = 2
-nyq = 0.5 * f_sample
+f_cutoff = 50
 
 # iterate over subjects
 for sub in subj_ids:
@@ -77,34 +64,15 @@ for sub in subj_ids:
     # fetch data
     mat = sio.loadmat(os.path.join(mat_path, str(sub) + "_interpolated_ET.mat"))
     pupilSize = mat['pupilInterpolated'].flatten()
-    time = mat['time'].flatten()
 
-    n = len(pupilSize)
+    downsample_factor = f_sample / f_cutoff
 
-    # approximate sin wave
-    #sig = np.sin(1.2*2*np.pi*pupilSize)
-    noise = 1.5*np.cos(9*2*np.pi*pupilSize) + 0.5*np.sin(12.0*2*np.pi*pupilSize)
-    data = pupilSize + noise
+    downsampled_array = average_downsample(pupilSize, downsample_factor)
 
-    y = butter_lowpass_filter(pupilSize, f_cutoff, f_sample, order)
+    # save data
+    filename = os.path.join(save_path, str(sub) + "_downsampled_ET.mat")
+    sio.savemat(filename, {'pupilDownsampled': downsampled_array, 'stim_min': mat['stim_min']})
 
-    # plot
-
-    #T = int(n/f_sample)
-    #t = np.linspace(0, T, n, endpoint=False)
-
-    t1 = range(len(pupilSize))
-    t2 = range(len(y))
-
-    assert t1 == t2
-    
-    plt.subplot(2, 1, 2)
-    plt.plot(t1, pupilSize, 'b-', label='data')
-    plt.plot(t1, y, 'g-', linewidth=2, label='filtered data')
-    plt.xlabel('Time [sec]')
-    plt.grid()
-    plt.legend()
-    plt.show()
 
 
     
