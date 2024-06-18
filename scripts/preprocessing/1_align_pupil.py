@@ -43,7 +43,7 @@ if not os.path.exists(save_path):
     os.makedirs(save_path)
 
 # Set range of subjects
-subj_ids = range(1002, 1016)
+subj_ids = range(1002, 1030)
 
 # Align pupil data to stimulus
 
@@ -59,17 +59,43 @@ for sub in subj_ids:
     # Pupil size during the entire timecourse
     pupilSize = samples['pupilSize']
 
+    # Event messages
+    event_msg_info = events['Messages']['info']
+    event_msg_time = events['Messages']['time']
+
+
     # story start and end
-    story_start = timestamps["storyStart"][0]
-    story_end = timestamps["storyEnd"][0]
+    msg_start_idx = event_msg_info.index('STORY_START')
+    msg_end_idx = event_msg_info.index('STORY_END')
+
+    story_start = event_msg_time[msg_start_idx]
+    story_end = event_msg_time[msg_end_idx]
+
+    start_idx = np.where(time == story_start)
+    end_idx = np.where(time == story_end)
+
+    if len(start_idx[0]) == 0:
+        story_start = story_start - 1
+        start_idx = np.where(time == story_start)
+    if len(end_idx[0]) == 0:
+        story_end = story_end + 1
+        end_idx = np.where(time == story_end)
+
+    # make sure indices are numbers
+    start_idx = start_idx[0][0]
+    end_idx = end_idx[0][0]
+
+
+    #story_start = timestamps["storyStart"][0]
+    #story_end = timestamps["storyEnd"][0]
     
     # get start and end indexes
-    f_sample = int(500) # Sampling frequency/rate(Hz)
-    start_idx = int(math.floor(story_start * f_sample))
-    end_idx = int(math.ceil(story_end * f_sample))
+    #f_sample = int(500) # Sampling frequency/rate(Hz)
+    #start_idx = int(math.floor(story_start * f_sample))
+    #end_idx = int(math.ceil(story_end * f_sample))
 
     # new array of only samples during stimulus presentation
-    pupilSize_encoding = pupilSize[start_idx: end_idx]
+    pupilSize_encoding = pupilSize[start_idx:end_idx]
     pupil_time = time[start_idx: end_idx]
 
     sample_num = len(pupilSize_encoding)

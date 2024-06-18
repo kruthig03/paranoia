@@ -1,6 +1,6 @@
 # Authors: Kruthi Gollapudi (kruthig@uchicago.edu), Jadyn Park (jadynpark@uchicago.edu)
 # Last Edited: May 28, 2024
-# Description: The script downsamples the interpolated pupil data to 60 Hz using [](Murphy et al. 2014)
+# Description: The script downsamples the interpolated pupil data to 50 Hz using [](Murphy et al. 2014)
 
 
 import numpy as np

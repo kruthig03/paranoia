@@ -20,9 +20,9 @@ if not os.path.exists(save_path):
     os.makedirs(save_path)
 
 # Set range of subjects
-subj_ids = range(1003, 1022)
+subj_ids = range(1002, 1022)
 
-
+## EXCLUDE 1022 and 1027
 ## ALTER FOLLOWING FUNCTION TO INCLUDE < 1 SEC INTERPOLATION
 
 def interpolate_blinks(sblink_minus1, eblink_plus1, pupilSize):

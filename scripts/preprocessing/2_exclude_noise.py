@@ -10,6 +10,7 @@ import scipy.io as sio
 import scipy.stats as stats
 import math
 
+## USE 1 SD FOR BOTH !!
 
 def calculate_noise(arr1, arr2, p, diff, lower):
     """
@@ -111,7 +112,7 @@ all_diff_sd = np.std(pupilDiff, ddof=0)
 
 
 # specify boundaries
-z_all_data = 2
+z_all_data = 1
 z_diff = 1
 
 #upper_lim = all_avg + s*all_sd
