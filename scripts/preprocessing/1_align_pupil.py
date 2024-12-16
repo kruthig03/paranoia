@@ -1,17 +1,15 @@
 # Authors: Kruthi Gollapudi (kruthig@uchicago.edu), Jadyn Park (jadynpark@uchicago.edu)
-# Last Edited: May 8, 2024
+# Last Edited: December 16, 2024
 # Description: The script aligns pupil data to stimulus presentation and excludes non-encoding data
-
 
 import numpy as np
 import pandas as pd
 import os
-import scipy.io as sio
-import mat73
 import math
+import mat73 # to load .mat files in MATLAB v7.3
 
-
-def fetch_mat(path, subj):
+# ------------------ Define functions ------------------ # 
+def fetch_mat(mat_path, sub_id):
     """
     Grabs .mat file for a given subject and saves each struct as an array.
     
@@ -22,89 +20,72 @@ def fetch_mat(path, subj):
         Detailed description of the variables: http://sr-research.jp/support/EyeLink%201000%20User%20Manual%201.5.0.pdf
     
     """
-
-    mat = mat73.loadmat(os.path.join(path, str(subj), str(subj) + "_ET.mat"))
+    mat = mat73.loadmat(os.path.join(mat_path, str(sub_id), str(sub_id) + "_ET.mat"))
     samples = mat['Samples']
     events = mat['Events']
-    
+        
     return samples, events
 
 
-# Set data directories
-#_thisDir = os.getcwd()
-mat_path = os.path.normpath('/Users/kruthigollapudi/src/paranoia/data/pupil/2_mat')
-ts_path = os.path.normpath('/Users/kruthigollapudi/src/paranoia/data/timestamps')
+# ------------------ Hardcoded parameters ------------------ #
+_THISDIR = os.getcwd()
+MAT_PATH = os.path.normpath(os.path.join(_THISDIR, '../../data/pupil/2_mat'))
+SAVE_PATH = os.path.normpath(os.path.join(_THISDIR, '../../data/pupil/3_processed/1_aligned'))
 
-# Set save directory
-save_path = os.path.normpath('/Users/kruthigollapudi/src/paranoia/data/pupil/3_processed/1_aligned')
+if not os.path.exists(SAVE_PATH):
+    os.makedirs(SAVE_PATH)
 
+SUBJ_IDS = range(1002, 1029)
+SAMPLING_RATE = 500 # Hz
+# PUPIL_INFO = Area
 
-if not os.path.exists(save_path):
-    os.makedirs(save_path)
-
-# Set range of subjects
-subj_ids = range(1002, 1030)
-
-# Align pupil data to stimulus
-
-for sub in subj_ids:
-
-    # get data files
-    timestamps = pd.read_csv(os.path.join(ts_path, str(sub) + "_paranoia_timestamps.csv"))
-    samples, events = fetch_mat(mat_path, sub)
+# ------------------- Main ------------------ #
+for sub in SUBJ_IDS:
+    
+    # Load .mat data
+    samples, events = fetch_mat(MAT_PATH, sub)
 
     # Time stamp of samples
-    time = samples['time']
+    samples_time = samples['time'] # in milliseconds; samples_time[1] - samples_time[0] = 2 ms
     
     # Pupil size during the entire timecourse
-    pupilSize = samples['pupilSize']
+    samples_pupilSize = samples['pupilSize']
 
     # Event messages
-    event_msg_info = events['Messages']['info']
-    event_msg_time = events['Messages']['time']
+    events_messages_info = events['Messages']['info']
+    events_messages_time = events['Messages']['time']
 
+    # Index and timestamp of STORY_START and STORY_END
+    story_start_idx = events_messages_info.index('STORY_START')
+    story_end_idx = events_messages_info.index('STORY_END')
 
-    # story start and end
-    msg_start_idx = event_msg_info.index('STORY_START')
-    msg_end_idx = event_msg_info.index('STORY_END')
+    story_start_time = events_messages_time[story_start_idx]
+    story_end_time = events_messages_time[story_end_idx]
 
-    story_start = event_msg_time[msg_start_idx]
-    story_end = event_msg_time[msg_end_idx]
+    # Align pupil data to stimulus presentation
+    pupil_start_idx = np.where(samples_time == story_start_time)
+    pupil_end_idx = np.where(samples_time == story_end_time)
 
-    start_idx = np.where(time == story_start)
-    end_idx = np.where(time == story_end)
-
-    if len(start_idx[0]) == 0:
-        story_start = story_start - 1
-        start_idx = np.where(time == story_start)
-    if len(end_idx[0]) == 0:
-        story_end = story_end + 1
-        end_idx = np.where(time == story_end)
-
-    # make sure indices are numbers
-    start_idx = start_idx[0][0]
-    end_idx = end_idx[0][0]
-
-
-    #story_start = timestamps["storyStart"][0]
-    #story_end = timestamps["storyEnd"][0]
+    # If Samples.time and events.Messages.time aren't aligned
+    if len(pupil_start_idx[0]) == 0:
+        story_start_time = story_start_time - 1
+        pupil_start_idx = np.where(samples_time == story_start_time)
+    if len(pupil_end_idx[0]) == 0:
+        story_end_time = story_end_time + 1
+        pupil_end_idx = np.where(samples_time == story_end_time)
+        
+    # Extract element from array
+    pupil_start_idx = pupil_start_idx[0][0]
+    pupil_end_idx = pupil_end_idx[0][0]
     
-    # get start and end indexes
-    #f_sample = int(500) # Sampling frequency/rate(Hz)
-    #start_idx = int(math.floor(story_start * f_sample))
-    #end_idx = int(math.ceil(story_end * f_sample))
-
-    # new array of only samples during stimulus presentation
-    pupilSize_encoding = pupilSize[start_idx:end_idx]
-    pupil_time = time[start_idx: end_idx]
-
-    sample_num = len(pupilSize_encoding)
-    stim_length = sample_num / 30000
-
-    # number of samples
-    #nSample_orig = len(pupilSize)
-    #nSample = len(pupilSize_encoding)
+    # New array of samples during stimulus presentation
+    pupilSize_encoding = samples_pupilSize[pupil_start_idx:pupil_end_idx]
     
-    filename = os.path.join(save_path, str(sub) + "_aligned_ET.mat")
-    sio.savemat(filename, {'pupilEncoding':pupilSize_encoding, 'time': pupil_time, 'sample_num': sample_num, 'stim_min': stim_length})
+    # Corresponding time stamp of the new array
+    encoding_time = samples_time[pupil_start_idx:pupil_end_idx]
+    encoding_time_corrected = encoding_time - encoding_time[0]
+    
+    filename = os.path.join(SAVE_PATH, str(sub) + "_aligned_ET.csv")
+    pd.DataFrame({'pupilSize': pupilSize_encoding, 'time_in_ms': encoding_time_corrected}).to_csv(filename, index=False)
+
 
