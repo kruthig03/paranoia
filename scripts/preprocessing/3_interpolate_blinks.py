@@ -1,6 +1,13 @@
 # Authors: Kruthi Gollapudi (kruthig@uchicago.edu), Jadyn Park (jadynpark@uchicago.edu)
-# Last Edited: May 28, 2024
-# Description: The script interpolates over blinks using both Eyelink's blink detection algorithm and basic interpolation scheme for data loss < 1 sec (Murphy et al. 2014)
+# Last Edited: December 17, 2024
+# Description: The script interpolates over blinks using: 
+# (1) Eyelink's blink detection algorithm and 
+# (2) basic interpolation scheme for data loss < 1 sec
+
+# Steps:
+# 1. Load aligned (and validated) pupil data
+# 2. Identify blinks in the data using Eyelink's algorithm
+# 3. Interpolate over any missing data using a basic linear interpolation scheme
 
 
 import numpy as np
@@ -9,22 +16,7 @@ import os
 import scipy.io as sio
 import math
 
-# Set data directories
-mat_path = os.path.normpath('/Users/kruthigollapudi/src/paranoia/data/pupil/3_processed/1_aligned')
-ts_path = os.path.normpath('/Users/kruthigollapudi/src/paranoia/data/timestamps')
-
-# Set save directory
-save_path = os.path.normpath('/Users/kruthigollapudi/src/paranoia/data/pupil/3_processed/3_interpolated')
-
-if not os.path.exists(save_path):
-    os.makedirs(save_path)
-
-# Set range of subjects
-subj_ids = range(1002, 1022)
-
-## EXCLUDE 1022 and 1027
-## ALTER FOLLOWING FUNCTION TO INCLUDE < 1 SEC INTERPOLATION
-
+# ------------------ Define functions ------------------ #
 def interpolate_blinks(sblink_minus1, eblink_plus1, pupilSize):
     """
     This function performs linear interpolation to estimate pupil size during blinks
@@ -81,6 +73,21 @@ def zero_runs(arr):
     # Runs start and end where absdiff is 1.
     result = np.where(absdiff == 1)[0].reshape(-1, 2)
     return result
+
+# ------------------ Hardcoded parameters ------------------ #
+_THISDIR = os.getcwd()
+DAT_PATH = os.path.norm(path.join(_THISDIR, '../../data/pupil/3_processed/2_valid_pts'))
+SAVE_PATH = os.path.norm(path.join(_THISDIR, '../../data/pupil/3_processed/3_interpolated'))
+
+if not os.path.exists(SAVE_PATH):
+    os.makedirs(SAVE_PATH)
+
+# Set range of subjects
+subj_ids = range(1002, 1022)
+
+## EXCLUDE 1022 and 1027
+## ALTER FOLLOWING FUNCTION TO INCLUDE < 1 SEC INTERPOLATION
+
 
 
 WINSIZE = 1000 ## cap for ms needed for interpolation
