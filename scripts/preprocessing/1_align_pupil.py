@@ -86,6 +86,6 @@ for sub in SUBJ_IDS:
     encoding_time_corrected = encoding_time - encoding_time[0]
     
     filename = os.path.join(SAVE_PATH, str(sub) + "_aligned_ET.csv")
-    pd.DataFrame({'pupilSize': pupilSize_encoding, 'time_in_ms': encoding_time_corrected}).to_csv(filename, index=False)
+    pd.DataFrame({'pupilSize': pupilSize_encoding, 'time_in_ms': encoding_time, 'time_in_ms_corrected': encoding_time_corrected}).to_csv(filename, index=False)
 
 
