@@ -80,7 +80,7 @@ SAVE_PATH = os.path.normpath(os.path.join(_THISDIR, '../../data/pupil/3_processe
 if not os.path.exists(SAVE_PATH):
     os.makedirs(SAVE_PATH)
 
-SUBJ_IDS = range(1002, 1028)
+SUBJ_IDS = range(1002, 1029)
 
 # Standard score for identifying cutoffs (SDSCORE = 1, 2, 3, ...)
 SDSCORE = 2
