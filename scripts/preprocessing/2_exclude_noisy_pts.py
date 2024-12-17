@@ -1,151 +1,131 @@
 # Authors: Kruthi Gollapudi (kruthig@uchicago.edu), Jadyn Park (jadynpark@uchicago.edu)
 # Last Edited: December 17, 2024
 # Description: The script calculated group mean pupil dilation and excludes noisy participants
-# e.g., a participant is excluded if 25% of the raw samples are more than 3 standard deviations from the mean
+# Noise is calculated based on the "derivative" (i.e., change in pupil size relative to the preceding sample; 
+#                                                aka,  sample N - sample N-1 pupil size)
+# Steps:
+# 1. Load aligned pupil data
+# 2. Create a distribution of the "derivatives"
+# 3. Calculate the cutoff from the distribution (e.g., 1 SD, 2 SD, 3 SD)
+# 4. Exclude participants if 25% data points are above/below the cutoff
+# i.e., if 25% of the data points have a derivative greater/less than the cutoff, exclude the participant
 
 import numpy as np
 import pandas as pd
 import os
-import scipy.io as sio
 import scipy.stats as stats
 import math
 
 # ------------------ Define functions ------------------ #
-def calculate_noise(arr1, arr2, p, diff, lower):
+def calculate_derivative(arr):
     """
-    Determines if data in array is noisy based on percent of data allowed to be below lower limit and above upper limit.
+    Calculates the derivative of the pupil size data.
 
     Inputs:
-    - arr1 (numpy array) containing the pupil size data
-    - arr2 (numpy array) containing the pupil size difference data
-    - p (float) specifying threshold for determining if data is noisy
-    - upper (float) limit for non-noisy data
-    - lower (float) limit for non-noisy data
+    - arr (numpy array) containing the pupil size data
 
     Outputs:
-    - noisy (bool), True if noisy and False if not
+    - diff (numpy array) containing the derivative of the pupil size data
 
     """
 
-    full_length = len(arr1)
-    count = 0
-
-    for idx, item in enumerate(arr1):
-        if idx != 0:
-            if (item < lower):
-                count +=1
-            elif arr2[idx] > diff:
-                count +=1
-        else:
-            if (item < lower):
-                count +=1
-
-    # proportion of noise in subject
-    prop_noise = count/full_length
+    diff = np.diff(arr)
+    diff = np.insert(diff, 0, 0)
     
-    if prop_noise >= p:
-        noisy = True
-    else:
-        noisy = False
+    return diff
+
+def create_dist_find_cutoff(arr, z):
+    """
+    Creates a distribution of the data and finds the cutoff value based on the distribution's standard deviation.
     
-    return noisy
+    Inputs:
+    - arr (numpy array) containing the pupil size data
+    - z (float) specifying the number of standard deviations to consider
+    
+    Outputs:
+    - cutoff (float) specifying the cutoff value for the data
+
+    """
+    
+    # Calculates median absolute deviation (MAD), which is more robust to outliers
+    median = np.median(arr)
+    mad = np.median(np.abs(arr - median))
+    cutoff = median + z * (mad * 1.4826) # pseudo SD for a normal distribution
+    
+    return cutoff
+
+def calc_prop_noisy(pupil_diff, cutoff):
+    """
+    Calculates what proportion of the data is considered noisy based on the cutoff value.
+    
+    Inputs:
+    - pupil_diff (numpy array) containing the derivative of the pupil size data
+    - cutoff (float) specifying the cutoff value for the data
+    
+    Outputs:
+    - prop_noisy (float) specifying the proportion of noisy data points (in percentage)
+
+    """
+    
+    noisy_pts = np.where(np.abs(pupil_diff > cutoff)) # Indices of the "noisy" data points
+    prop_noisy = len(noisy_pts[0])/len(pupil_diff)*100
+    
+    return prop_noisy
 
 # ------------------ Hardcoded parameters ------------------ #
-# Set data directories
-mat_path = os.path.normpath('/Users/kruthigollapudi/src/paranoia/data/pupil/3_processed/1_aligned')
-ts_path = os.path.normpath('/Users/kruthigollapudi/src/paranoia/data/timestamps')
+_THISDIR = os.getcwd()
+DAT_PATH = os.path.normpath(os.path.join(_THISDIR, '../../data/pupil/3_processed/1_aligned'))
+SAVE_PATH = os.path.normpath(os.path.join(_THISDIR, '../../data/pupil/3_processed/2_valid_pts'))
 
-# Set save directory
-save_path = os.path.normpath('/Users/kruthigollapudi/src/paranoia/data/pupil/3_processed/2_excluded_participants')
+if not os.path.exists(SAVE_PATH):
+    os.makedirs(SAVE_PATH)
 
-if not os.path.exists(save_path):
-    os.makedirs(save_path)
+SUBJ_IDS = range(1002, 1028)
 
+# Standard score for identifying cutoffs (SDSCORE = 1, 2, 3, ...)
+SDSCORE = 2
 
-# Set range of subjects
-subj_ids = range(1002, 1030)
-
-# Create list with all pupil data
-all_pupil = np.array([])
-#all_pupil_z = np.array([])
-pupilDiff = np.array([])
+# ------------------ Initialize arrays ------------------ #
+pupil_diff_allsub = np.array([]) # To store everyone's derivative data
 
 # ------------------- Main ------------------ #
-for sub in subj_ids:
-
-    # get data files
-    mat = sio.loadmat(os.path.join(mat_path, str(sub) + "_aligned_ET.mat"))
-
-    # Pupil size during the entire timecourse
-    pupilSize = mat['pupilEncoding'].flatten()
-    time = mat['time'].flatten()
-
-    pupilSize_next = np.copy(pupilSize)
-    pupilSize_next = np.delete(pupilSize_next, 0)
-    pupilSize = np.delete(pupilSize, -1)
-    differences = pupilSize_next - pupilSize
-    #differences = np.insert(differences, 0, 0)
-    pupilDiff = np.append(differences, pupilDiff)
-
-    #for i, val in enumerate(pupilSize):
-        #if i != 0:
-            #diff = val - prev_val
-            #pupilDiff = np.append(diff, pupilDiff)    
-        #else:
-            #pupilDiff = np.append(0, pupilDiff) 
-        #prev_val = val
+for sub in SUBJ_IDS:
     
-
-    # combine all data
-    all_pupil = np.append(all_pupil, pupilSize)
-    #all_pupil_z = np.append(all_pupil, pupil_z_scored)
-
-
-print(len(pupilDiff), len(all_pupil))
-
-# Get group statistics
-all_avg = np.mean(all_pupil)
-all_sd = np.std(all_pupil, ddof=0)
-
-all_diff_mean = np.mean(pupilDiff)
-all_diff_sd = np.std(pupilDiff, ddof=0)
-
-
-# specify boundaries
-z_all_data = 1
-z_diff = 1
-
-#upper_lim = all_avg + s*all_sd
-lower_lim = all_avg - z_all_data*all_sd
-diff_thresh = all_diff_mean + z_diff*all_diff_sd
-
-print(lower_lim, diff_thresh)
-
-exclusions = np.array([])
-for sub in subj_ids:
+    # Load aligned data
+    dat = pd.read_csv(os.path.join(DAT_PATH, str(sub) + "_aligned_ET.csv"))
+    pupil_raw = dat['pupilSize']
     
-    # get data files
-    mat = sio.loadmat(os.path.join(mat_path, str(sub) + "_aligned_ET.mat"))
+    # Drop invalid samples
+    pupil_raw = pupil_raw.dropna()  
 
-    # Pupil size during the entire timecourse
-    pupilSize = mat['pupilEncoding'].flatten()
-    time = mat['time'].flatten()
+    # Calculate the "derivative"
+    pupil_diff = calculate_derivative(pupil_raw)
+    
+    # Concatenate all participants' data to create a distribution
+    pupil_diff_allsub = np.append(pupil_diff_allsub, pupil_diff)
+    
+# Find the cutoff values from the distribution
+cutoff = create_dist_find_cutoff(pupil_diff_allsub, SDSCORE)
 
-    # calculate percentage of noise
-    result = calculate_noise(pupilSize, pupilDiff, 0.25, diff_thresh, lower_lim)
-
-    if result:
-        print(str(sub), " data is too noisy, will be excluded")
-        exclusions = np.append(str(sub), exclusions)
-
-    #else:
-        #pupil_z_scored = stats.zscore(pupilSize)
-        # save text file with participants to exclude
-        #filename = os.path.join(save_path, str(sub) + "_excluded_participants.mat")
-        #sio.savemat(filename, {'pupilZScored':pupil_z_scored, 'time': time, 'sample_num': mat['sample_num'], 'stim_min': mat['stim_min']})
-
-filename = os.path.join(save_path, str(z_all_data) + '_' + str(z_diff) + "_excluded_participants.mat")
-sio.savemat(filename, {'excluded_participants': exclusions})
+for sub in SUBJ_IDS:
+    
+    # Load aligned data
+    dat = pd.read_csv(os.path.join(DAT_PATH, str(sub) + "_aligned_ET.csv"))
+    pupil_raw = dat['pupilSize'].dropna()
+    
+    # Calculate the "derivative"
+    pupil_diff = calculate_derivative(pupil_raw)
+    
+    # Calculate the proportion of noisy data points
+    prop_noisy = calc_prop_noisy(pupil_diff, cutoff)
+   
+    if prop_noisy >= 25:
+        print(f"Participant {sub} excluded. {prop_noisy:.2f}% of the data are noisy :( ")
+        
+    # Save non-noisy participants' data
+    else:
+        dat.to_csv(os.path.join(SAVE_PATH, str(sub) + "_aligned_" + str(SDSCORE) + "SD_ET.csv"), index=False)
+        # Excluded pts 1003, 1005, 1016, 1017, 1023
 
 
 
