@@ -18,10 +18,10 @@ if not os.path.exists(SAVE_PATH):
     os.makedirs(SAVE_PATH)
     
 SAMPLE_RATE_HZ = int(500) # Sampling frequency in Hz
-SAMPLE_RATE_MS = int(2) # 500 Hz in ms
+SAMPLE_RATE_MS = 1/SAMPLE_RATE_HZ * 1000 # 500 Hz in ms (2 ms)
 
 DOWNSAMPLE_RATE_HZ = int(50) # Downsample to 50 Hz
-DOWNSAMPLE_RATE_MS = int(20) # 50 Hz in ms
+DOWNSAMPLE_RATE_MS = 1/DOWNSAMPLE_RATE_HZ * 1000 # 50 Hz in ms (20 ms)
     
 SUBJ_IDS = range(1002, 1029)
 
