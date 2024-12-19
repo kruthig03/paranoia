@@ -81,7 +81,8 @@ def interpolate_blinks(sBlink_idx, eBlink_idx, pupilSize):
 
 def id_zeros(arr):
     """
-    Identify segments in the data where there are <500 consequtive zeros
+    Identify segments in the data where there are zeros. The function takes in array and outputs new array
+    where each row contains the first and last index of the consecutive zeros present in the original array.
     
     Params:
     - arr (numpy array): blink-removed pupil size data
@@ -94,30 +95,14 @@ def id_zeros(arr):
     # Create an array that is 1 where a is 0, and pad each end with an extra 0.
     iszero = np.concatenate(([0], np.equal(arr, 0).view(np.int8), [0]))
     absdiff = np.abs(np.diff(iszero))
-    
-    
-    
-    """
-    Takes in array and outputs new array where each row contains the first and 
-    last index of the consecutive zeros present in the original array.
-    
-    Params:
-        arr: (np.ndarray) containing values with consecutive zeros
-        
-    Returns:
-        ranges: (np.ndarray) containing indices of consecutive zeros
-    
-    """
-
-    # Create an array that is 1 where a is 0, and pad each end with an extra 0.
-    iszero = np.concatenate(([0], np.equal(arr, 0).view(np.int8), [0]))
-    absdiff = np.abs(np.diff(iszero))
 
     # Runs start and end where absdiff is 1.
     result = np.where(absdiff == 1)[0].reshape(-1, 2)
+    
     return result
 
 # ------------------ Hardcoded parameters ------------------ #
+os.chdir('/Users/jadyn/repo/paranoia/scripts/preprocessing')
 _THISDIR = os.getcwd()
 DAT_PATH = os.path.normpath(os.path.join(_THISDIR, '../../data/pupil/3_processed/2_valid_pts'))
 MAT_PATH = os.path.normpath(os.path.join(_THISDIR, '../../data/pupil/2_mat'))
@@ -126,8 +111,7 @@ SAVE_PATH = os.path.normpath(os.path.join(_THISDIR, '../../data/pupil/3_processe
 if not os.path.exists(SAVE_PATH):
     os.makedirs(SAVE_PATH)
 
-SUBJ_IDS = range(1002, 1005)
-#SUBJ_IDS = range(1002, 1029)
+SUBJ_IDS = range(1002, 1029)
 
 # Standard score cutoffs
 SDSCORE = 2
@@ -182,49 +166,30 @@ for sub in SUBJ_IDS:
     # Step 2. Interpolate over missing data points shorter than 1 sec
     # ================================================================
     
-    arr = np.array(pupilSize_blinks_removed)
+    # Identify consecutive zeros (i.e., missing data) in blink-removed pupil data
+    zeros_idx = id_zeros(pupilSize_blinks_removed)
+    
+    for val in zeros_idx:
+            
+            # Idx of zero start and end
+            start, end = (val[0], val[-1])
+            
+            # Are the consequtive zeros less than 1 sec?
+            if (end - start) <= SAMPLE_RATE:
+                
+                pupilSize_clean = interpolate_blinks(start, end, pupilSize_blinks_removed)
+    
+    dat['pupilSize_clean'] = pupilSize_clean
+    
+    # Calculate the percentage of data with missing data longer than 1 seconds
+    prop_missing_data = (np.sum(pupilSize_clean == 0)) / len(pupilSize_clean) * 100
+    print("Subject", sub, "has", prop_missing_data, "% missing data points")
     
     
-    # Create an array that is 1 where a is 0, and pad each end with an extra 0.
-    iszero = np.concatenate(([0], np.equal(arr, 0).view(np.int8), [0]))
-    absdiff = np.abs(np.diff(iszero))
-
-    # Runs start and end where absdiff is 1.
-    result = np.where(absdiff == 1)[0].reshape(-1, 2)
+    # Save clean pupil data
+    filename = os.path.join(SAVE_PATH, str(sub) + "_interpolated_ET.csv")
+    dat.to_csv(filename, index=False)
     
-        
-    # Save interpolated data
-    # filename = os.path.join(SAVE_PATH, str(sub) + "_interpolated_ET.csv")
-    # dat.to_csv(filename, index=False)
-    
-    
-    
-   
-
-    
-    
-    
-    """
-
-    # get array containing index values of ranges to interpolate over
-    ranges = zero_runs(pupilSize)
-
-    for val in ranges:
-
-        # get first consec. zeros
-        start, end = (val[0], val[-1])
-
-        if (end - start) <= f_sample:  # make sure that the range is less than or eq. to 1 sec
-
-            i1, i2 = (start-1, end+1)
-            pupilSize_new = interpolate_blinks(i1, i2, pupilSize)
-            pupilSize = pupilSize_new
-
-    filename = os.path.join(save_path, str(sub) + "_interpolated_ET.mat")
-    sio.savemat(filename, {'pupilInterpolated':pupilSize, 'time': time, 'sample_num': sample_num, 'stim_min': stim_length})
-
-    """
-
 
 
 
