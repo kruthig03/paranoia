@@ -53,8 +53,8 @@ def interpolate_blinks(sBlink_idx, eBlink_idx, pupilSize):
     # 1 point before the start of blink
     sBlink_minus1 = sBlink_idx - 1
     
-    # 1 point after the end of blink
-    eBlink_plus1 = eBlink_idx + 1
+    # 1 point after the end of blink (blink ends at eBlink_idx + 1)
+    eBlink_plus1 = eBlink_idx + 2
     
     # Two points must be present for interpolations 
     # If the data begins or ends with a blink, you cannot interpolate
@@ -74,7 +74,7 @@ def interpolate_blinks(sBlink_idx, eBlink_idx, pupilSize):
         afterInterpolate = afterInterpolate[1:-1] # Remove the point before and after blink
         
         # Put the interpolated data back in
-        pupilSize[sBlink_idx:eBlink_idx] = afterInterpolate
+        pupilSize[sBlink_idx:eBlink_idx+1] = afterInterpolate
         
     return pupilSize
 
@@ -174,7 +174,7 @@ for sub in SUBJ_IDS:
     
     for i in range(nBlinks):
         pupilSize_blinks_removed = interpolate_blinks(sBlink_idx[i], eBlink_idx[i], pupilSize_blinks_removed)
-        
+            
     # Add interpolated pupil data to the dataframe
     dat['pupilSize_noBlinks'] = pupilSize_blinks_removed
     
@@ -186,6 +186,7 @@ for sub in SUBJ_IDS:
     # Identify consecutive zeros (i.e., missing data) in blink-removed pupil data
     zeros_idx = id_zeros(pupilSize_blinks_removed)
     
+    pupilSize_clean = pupilSize_blinks_removed.copy()
     for val in zeros_idx:
             
             # Idx of zero start and end
@@ -194,7 +195,7 @@ for sub in SUBJ_IDS:
             # Are the consequtive zeros less than 1 sec?
             if (end - start) <= SAMPLE_RATE:
                 
-                pupilSize_clean = interpolate_blinks(start, end, pupilSize_blinks_removed)
+                pupilSize_clean = interpolate_blinks(start, end, pupilSize_clean)
     
     dat['pupilSize_clean'] = pupilSize_clean
     
@@ -206,9 +207,3 @@ for sub in SUBJ_IDS:
     # Save clean pupil data
     filename = os.path.join(SAVE_PATH, str(sub) + "_interpolated_ET.csv")
     dat.to_csv(filename, index=False)
-    
-
-
-
-    
-    
