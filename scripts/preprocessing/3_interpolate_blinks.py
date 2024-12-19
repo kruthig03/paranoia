@@ -34,8 +34,6 @@ def fetch_mat(mat_path, sub_id):
         
     return samples, events
 
-
-# ------------------ Define functions ------------------ #
 def interpolate_blinks(sBlink_idx, eBlink_idx, pupilSize):
     """
     This function performs linear interpolation to estimate pupil size during blinks
