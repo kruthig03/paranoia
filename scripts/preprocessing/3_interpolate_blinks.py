@@ -146,17 +146,34 @@ for sub in SUBJ_IDS:
     
     # Index of corresponding time in the pupil data
     sBlink_idx = [np.where(time_of_sample == blink_time)[0][0] for blink_time in sBlink_time 
-                  if np.where(time_of_sample == blink_time)[0].size > 0]
+                  # To prevent out of bounds error
+                  if np.where(time_of_sample == blink_time)[0].size > 0 and 
+                  np.where(time_of_sample == blink_time)[0].size < len(pupilSize)] 
     
     eBlink_idx = [np.where(time_of_sample == blink_time)[0][0] for blink_time in eBlink_time
-                  if np.where(time_of_sample == blink_time)[0].size > 0]
+                  # To prevent out of bounds error
+                  if np.where(time_of_sample == blink_time)[0].size > 0 and
+                  np.where(time_of_sample == blink_time)[0].size < len(pupilSize)]
     
     # How many blinks?
     nBlinks = len(sBlink_idx)
     
+    # If the sample ends with a blink
+    if len(sBlink_idx) > len(eBlink_idx):
+        eBlink_idx.append(len(pupilSize))
+    # If the sample starts with a blink
+    elif len(sBlink_idx) < len(eBlink_idx):
+        sBlink_idx.insert(0, 0)  
+    # If the sample starts AND ends with a blink
+    elif sBlink_idx[0] > eBlink_idx[0] and len(sBlink_idx) == len(eBlink_idx):
+        sBlink_idx.insert(0, 0)
+        eBlink_idx.append(len(pupilSize))
+    
     # Interpolate over blinks
+    pupilSize_blinks_removed = pupilSize.copy()
+    
     for i in range(nBlinks):
-        pupilSize_blinks_removed = interpolate_blinks(sBlink_idx[i], eBlink_idx[i], pupilSize)
+        pupilSize_blinks_removed = interpolate_blinks(sBlink_idx[i], eBlink_idx[i], pupilSize_blinks_removed)
         
     # Add interpolated pupil data to the dataframe
     dat['pupilSize_noBlinks'] = pupilSize_blinks_removed
