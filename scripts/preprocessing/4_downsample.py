@@ -1,79 +1,56 @@
 # Authors: Kruthi Gollapudi (kruthig@uchicago.edu), Jadyn Park (jadynpark@uchicago.edu)
-# Last Edited: May 28, 2024
-# Description: The script downsamples the interpolated pupil data to 50 Hz using [](Murphy et al. 2014)
-
+# Last Edited: December 19, 2024
+# Description: The script downsamples the clean (interpolated) pupil data to 50 Hz
+# Downsampled via averaging (i.e., taking the mean of every N samples)
 
 import numpy as np
 import pandas as pd
 import os
-import scipy.io as sio
 import math
 
+# ------------------ Hardcoded parameters ------------------ #
+os.chdir('/Users/jadyn/repo/paranoia/scripts/preprocessing')
+_THISDIR = os.getcwd()
+DAT_PATH = os.path.normpath(os.path.join(_THISDIR, '../../data/pupil/3_processed/3_interpolated'))
+SAVE_PATH = os.path.normpath(os.path.join(_THISDIR, '../../data/pupil/3_processed/4_downsampled'))
 
-# Set data directories
-mat_path = os.path.normpath('/Users/kruthigollapudi/src/paranoia/data/pupil/3_processed/3_interpolated')
-ts_path = os.path.normpath('/Users/kruthigollapudi/src/paranoia/data/timestamps')
-
-# Set save directory
-save_path = os.path.normpath('/Users/kruthigollapudi/src/paranoia/data/pupil/3_processed/4_downsampled')
-
-if not os.path.exists(save_path):
-    os.makedirs(save_path)
-
-# Set range of subjects
-subj_ids = range(1002, 1022)
-
-
-# Define iterative downsampling method
-
-def average_downsample(arr, downsample_factor):
-    '''
-    Perform downsampling of array by averaging across every n (downsampling_factor) elements
-
-    Inputs:
-        - arr: (np.ndarray) of samples to downsample
-        - downsample_factor: (float) for every element to average across
-
-    Outputs:
-        - averaged_array: (np.ndarray) of downsampled samples
-    '''
-    downsample_factor = int(downsample_factor)
-
-    # Calculate the number of elements to pad
-    pad_size = int((downsample_factor - len(arr) % downsample_factor) % downsample_factor)
-
-    # Pad the array with NaNs
-    padded_array = np.pad(arr, (0, pad_size), mode='constant', constant_values=np.nan)
-
-    # Reshape the array to group by every factor
-    reshaped_array = padded_array.reshape(-1, downsample_factor)
-
-    # Compute the mean, ignoring NaNs
-    averaged_array = np.nanmean(reshaped_array, axis=1)
-
-    return averaged_array
-
-
-# define freq. parameters
-f_sample = 500 
-f_cutoff = 50
-
-# iterate over subjects
-for sub in subj_ids:
-
-    # fetch data
-    mat = sio.loadmat(os.path.join(mat_path, str(sub) + "_interpolated_ET.mat"))
-    pupilSize = mat['pupilInterpolated'].flatten()
-
-    downsample_factor = f_sample / f_cutoff
-
-    downsampled_array = average_downsample(pupilSize, downsample_factor)
-
-    # save data
-    filename = os.path.join(save_path, str(sub) + "_downsampled_ET.mat")
-    sio.savemat(filename, {'pupilDownsampled': downsampled_array, 'stim_min': mat['stim_min']})
-
-
-
+if not os.path.exists(SAVE_PATH):
+    os.makedirs(SAVE_PATH)
     
+SAMPLE_RATE_HZ = int(500) # Sampling frequency in Hz
+SAMPLE_RATE_MS = int(2) # 500 Hz in ms
 
+DOWNSAMPLE_RATE_HZ = int(50) # Downsample to 50 Hz
+DOWNSAMPLE_RATE_MS = int(20) # 50 Hz in ms
+    
+SUBJ_IDS = range(1002, 1029)
+
+# ------------------- Main ------------------ #
+for sub in SUBJ_IDS:
+    
+     # Load clean pupil data
+    file_path = os.path.join(DAT_PATH, str(sub) + "_interpolated_ET.csv")
+    if not os.path.exists(file_path):
+        continue
+    dat = pd.read_csv(file_path)
+    
+    # Convert time to datetime and set as index
+    dat['time_in_ms_corrected'] = pd.to_datetime(dat['time_in_ms_corrected'], unit='ms')
+    dat.set_index('time_in_ms_corrected', inplace=True)
+    
+    # Resample to 50 Hz (20 ms intervals) and aggregate (e.g., take mean of each chunk)
+    pupilSize_downsampled = dat['pupilSize_clean'].resample(f"{DOWNSAMPLE_RATE_MS}ms").mean()
+    pupilSize_downsampled.reset_index(drop=True, inplace=True)
+    
+    # Create a new time column
+    time_in_ms_downsampled = np.arange(0, len(pupilSize_downsampled) * DOWNSAMPLE_RATE_MS, DOWNSAMPLE_RATE_MS)
+    
+    # Create new dataframe with downsampled data
+    df_downsampled = pd.DataFrame({'time_in_ms': time_in_ms_downsampled, 'pupilSize_clean': pupilSize_downsampled})
+    
+    # Check if the length is more or less the same across subjects
+    print("Subject", sub, "; num samples: ", len(time_in_ms_downsampled))
+    
+    # Save downsampled data
+    filename = os.path.join(SAVE_PATH, str(sub) + "_downsampled_ET.csv")
+    df_downsampled.to_csv(filename, index=False)
