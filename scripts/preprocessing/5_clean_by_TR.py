@@ -28,41 +28,114 @@ import os
 import math
 import importlib
 import scipy.stats as stats
+import matplotlib.pyplot as plt
 
 # ------------------ Define functions ------------------ # 
-def compute_epoch_noise(arr, mean, interval, prop):
-    '''
-    Determines if segment of data is considered noisy, which is when 40% or more of the samples
-    are +/- 1 SD from the epoch mean.
-
-    Inputs:
-        - arr: (np.ndarray) containing samples from duration of 1 sec
-        - mean: (float) mean of epoch set
-        - interval: (float/int) how many SDs away from mean we want to measure
-        - prop: (float) percent of data that is the noise limit 
-
-    Outputs:
-        - float/int/np.nan, the mean if not noisy, otherwise NaN
-    '''
-
-    sd = np.std(arr)
-
-    upper_lim = mean + sd * interval
-    lower_lim = mean - sd * interval
-
-    count = 0
-
-    for m in arr:
-        if (m > upper_lim) or m < lower_lim:
-            count +=1
-
-    if count / len(arr) > prop:
-        #print("this set is noisy")
-        result = 0
-    else:
-        result = mean
+def calc_clean_mean(arr, z, artifact_threshold):
+    """
+    Calculate the mean of non-artifactual samples within each epoch.
     
-    return result
+    Inputs:
+    - arr (np array): contains the samples for each epoch
+    - z (float): specifies the number of standard deviations to consider
+    
+    Outputs:
+    - mean (float): mean pupil size of the non-artifactual samples
+        
+    """
+    
+    # Calculate the mean and standard deviation of the epoch
+    arr = pupilSize_epoch
+    mean = np.mean(arr)
+    sd = np.std(arr)
+    
+    # Identify the artifactual samples within each epoch
+    upper_lim = mean + z * sd
+    lower_lim = mean - z * sd
+    
+    # Remove artifactual samples
+    arr_clean = arr[(arr > lower_lim) & (arr < upper_lim)]
+    
+    # Calculate the mean of the non-artifactual samples
+    mean_clean = np.mean(arr_clean)
+    
+    # If the epoch is characterized by >40% artifactual samples, replace the mean pupil diameter with 0 for that epoch
+    if len(arr_clean) / len(arr) < 1-artifact_threshold:
+        mean_clean = 0
+    
+    return mean_clean
+
+def tolerant_mean(arrs):
+    """
+    Calculate the mean of arrays with different lengths
+    
+    Input:
+    - arrs (list of np arrays): contains the epoch samples from each subject
+    
+    Output:
+    - y (np array): mean of the arrays
+    - sem (np array): standard error of the mean of the arrays
+    
+    """
+    
+    # Get the length of each array (i.e., length of each subject's pupil size)
+    lens = [len(i) for i in arrs]
+    
+    # Create a masked array (max_length, number of arrays)
+    arr = np.ma.empty((np.max(lens),len(arrs)))
+    arr.mask = True
+    
+    # Fill the masked array with data
+    # Shorter arrays are left empty
+    for idx, l in enumerate(arrs):
+        arr[:len(l),idx] = l
+    
+    # Calculate standard error
+    sem = arr.std(axis=-1) / np.sqrt(len(arrs))
+    
+    return arr.mean(axis=-1), sem
+
+def interpolate_blinks(sBlink_idx, eBlink_idx, pupilSize):
+    """
+    This function performs linear interpolation to estimate pupil size during blinks
+    
+    Params:
+    - sblink (numpy array): index of the start of blink
+    - eblink (numpy array): index of the end of blink
+    - pupilSize (numpy array): pupil size
+        
+    Returns:
+    - pupilSize (numpy array) : modified pupil size with interpolated values for blinks
+    
+    """
+    
+    # 1 point before the start of blink
+    sBlink_minus1 = sBlink_idx - 1
+    
+    # 1 point after the end of blink (blink ends at eBlink_idx + 1)
+    eBlink_plus1 = eBlink_idx + 2
+    
+    # Two points must be present for interpolations 
+    # If the data begins or ends with a blink, you cannot interpolate
+    if ((eBlink_plus1 < len(pupilSize)) and (sBlink_minus1 >= 0)):
+        
+        # Interpolate over these samples
+        blink_data = np.array(pupilSize[sBlink_minus1:eBlink_plus1])
+
+        # Pupil size right before and after blink
+        toInterp = [blink_data[0], blink_data[-1]]
+
+        # Timepoint to interpolate over
+        toInterp_TP = [0, len(blink_data)-1] # x-coordinate of query points
+        
+        # Perform interpolation
+        afterInterpolate = np.interp(range(len(blink_data)), toInterp_TP, toInterp)
+        afterInterpolate = afterInterpolate[1:-1] # Remove the point before and after blink
+        
+        # Put the interpolated data back in
+        pupilSize[sBlink_idx:eBlink_idx+1] = afterInterpolate
+        
+    return pupilSize
 
 # ------------------ Hardcoded parameters ------------------ #
 os.chdir('/Users/jadyn/repo/paranoia/scripts/preprocessing')
@@ -73,15 +146,34 @@ SAVE_PATH = os.path.normpath(os.path.join(_THISDIR, '../../data/pupil/3_processe
 if not os.path.exists(SAVE_PATH):
     os.makedirs(SAVE_PATH)
 
-f_sample = 50  # sampling rate (downsampled to)
-module_name = '3_interpolate_blinks'
-module = importlib.import_module(module_name)
-zero_runs = getattr(module, 'zero_runs')
-interpolate_blinks = getattr(module, 'interpolate_blinks')
+TR = int(1000) # TR in ms 
+CURRENT_SAMPLE_HZ = int(50) # Currently sampled at 50 Hz
+CURRENT_SAMPLE_MS = 1/CURRENT_SAMPLE_HZ * 1000 # 50 Hz in ms (20 ms)
 
-SUBJ_IDS = range(1002, 1005)
+SAMPLES_PER_EPOCH = int(TR / CURRENT_SAMPLE_MS) # Number of samples per epoch (segment)
+
+# Standard score for identifying cutoffs (SDSCORE = 1, 2, 3, ...)
+SDSCORE = 3
+
+# Cutoff for identifying artifactual samples
+ARTIFACT_THRESHOLD = 0.4 # Range: 0-1, an epoch with >40% artifactual samples is considered noisy
+
+# f_sample = 50  # sampling rate (downsampled to)
+# module_name = '3_interpolate_blinks'
+# module = importlib.import_module(module_name)
+# zero_runs = getattr(module, 'zero_runs')
+# interpolate_blinks = getattr(module, 'interpolate_blinks')
+
+SUBJ_IDS = range(1002, 1029)
+
+# ------------------ Plot settings ------------------ # 
+plt.figure(figsize=(12, 3))
+THIS_SUB = int(1010) # Manually define which subject you want to view
 
 # ------------------- Main ------------------ #
+# Create empty dictionary to store everyone's pupil data
+pupil_allSub = {}
+
 for sub in SUBJ_IDS:
     
     # Load clean pupil data
@@ -90,40 +182,81 @@ for sub in SUBJ_IDS:
         continue
     dat = pd.read_csv(file_path)
     
+    pupilSize = np.array(dat['pupilSize_clean'])
     
-
-    n = len(pupilSize)
-    epoch_set = np.array([])
-    data_by_TR = np.array([])
-
-    for idx, val in enumerate(pupilSize):
-        epoch_set = np.append(val, epoch_set)
-
-        if (idx + 1) % f_sample == 0 or idx == n-1:
-
-            epoch_mean = np.average(epoch_set)
-            output = compute_epoch_noise(epoch_set, epoch_mean, 1, 0.5)
-
-            data_by_TR = np.append(output, data_by_TR)
-            epoch_set = np.array([])
+    # Create empty array to store time-locked pupil data
+    pupilTimeLocked = np.array([])
     
-
-    # start interpolation
-    # get array containing index values of ranges to interpolate over
+    # Segment the data into 1-second epochs (segments)
+    for i in range(0, len(pupilSize), SAMPLES_PER_EPOCH):
+        pupilSize_epoch = pupilSize[i:i+SAMPLES_PER_EPOCH]
+        
+        # Identify the artifactual samples within each epoch
+        # Calculate the mean pupil diameter for each epoch from the remaining non-artifactual samples
+        epoch_clean = calc_clean_mean(pupilSize_epoch, SDSCORE, ARTIFACT_THRESHOLD)
+        
+        # Append the mean pupil diameter to the time-locked array
+        pupilTimeLocked = np.append(pupilTimeLocked, epoch_clean)
+            
+        
+    # Create a TR column
+    TR = np.arange(1, len(pupilTimeLocked)+1)
     
-    ranges = zero_runs(data_by_TR)
+    # If there are epochs with a zero (i.e., epochs with >40% artifactual samples), 
+    # replace the mean pupil diameter for that epoch via linear interpolation across adjacent clean epochs  
+    if np.any(pupilTimeLocked == 0) == True:
+        
+        # Get the index of the zero epochs
+        zero_idx = np.where(pupilTimeLocked == 0)[0]
+        
+        # If the data begins or ends with a zero epoch, you cannot interpolate
+        if zero_idx==0 or zero_idx==len(pupilTimeLocked)-1:
+            continue
+        else:
+            for idx in zero_idx:
+                # Get the start and end of the zero epoch
+                start = idx
+                end = idx + 1
+                
+                # Interpolate over the zero epoch
+                pupilTimeLocked = interpolate_blinks(start, end, pupilTimeLocked)
+                
+    # Save data for each subject
+    df = pd.DataFrame({'TR': TR, 'pupilSize': pupilTimeLocked})
+    # df.to_csv(os.path.join(SAVE_PATH, str(sub) + "_timelocked.csv"), index=False)
 
-    for val in ranges:
-
-        # get first consec. zeros
-        start, end = (val[0], val[-1])
-        i1, i2 = (start-1, end+1)
-        data_TR_new = interpolate_blinks(i1, i2, data_by_TR)
-        data_by_TR = data_TR_new
 
 
-    filename = os.path.join(save_path, str(sub) + "_final_interp_ET.mat")
-    sio.savemat(filename, {'pupilFinal': data_by_TR})
+    # ==========
+    # Plotting
+    # ==========
+    # Standardize pupil data
+    pupil_z = stats.zscore(pupilTimeLocked)
+    
+    # Save everyone's data in a dictionary
+    pupil_allSub[sub] = {'TR': TR, 'pupilSize': pupil_z}
+  
+    # Plot the time-locked pupil data
+    if sub == THIS_SUB:
+         plt.plot(pupil_allSub[sub]['TR'], pupil_allSub[sub]['pupilSize'], color='red', linewidth=1)
+    else: 
+        plt.plot(pupil_allSub[sub]['TR'], pupil_allSub[sub]['pupilSize'], color='lightgray', linewidth=0.5)
+    
+# Calculate averate across all subjects
+subs = list(pupil_allSub.keys())
+allSub_data_list = [data['pupilSize'] for data in pupil_allSub.values()]
+pupil_mean, sem = tolerant_mean(allSub_data_list)
+    
+# Plot average data
+plt.plot(np.arange(len(pupil_mean)), pupil_mean, color='blue', linewidth=2)
+
+# Add labels and title
+plt.xlabel('Time (TR)')
+plt.ylabel('Pupil Size')
+plt.title('Pupil Size Time Course Across Subjects')
+
+# Display the plot
+plt.show()
     
 
 
