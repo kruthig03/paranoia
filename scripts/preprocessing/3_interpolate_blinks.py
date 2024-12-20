@@ -19,17 +19,18 @@ import mat73 # to load .mat files in MATLAB v7.3
 # ------------------ Hardcoded parameters ------------------ #
 os.chdir('/Users/jadyn/repo/paranoia/scripts/preprocessing')
 _THISDIR = os.getcwd()
-DAT_PATH = os.path.normpath(os.path.join(_THISDIR, '../../data/pupil/3_processed/2_valid_pts'))
+
+# Standard score cutoffs
+SDSCORE = 2
+
+DAT_PATH = os.path.normpath(os.path.join(_THISDIR, '../../data/pupil/3_processed/2_valid_pts', str(SDSCORE) + "SD"))
 MAT_PATH = os.path.normpath(os.path.join(_THISDIR, '../../data/pupil/2_mat'))
 SAVE_PATH = os.path.normpath(os.path.join(_THISDIR, '../../data/pupil/3_processed/3_interpolated'))
 
 if not os.path.exists(SAVE_PATH):
     os.makedirs(SAVE_PATH)
 
-SUBJ_IDS = range(1002, 1029)
-
-# Standard score cutoffs
-SDSCORE = 2
+SUBJ_IDS = range(1002, 1037)
 
 WINSIZE = 1000 ## cap for ms needed for interpolation
 SAMPLE_RATE = int(500) # Sampling frequency/rate(Hz)
@@ -121,7 +122,7 @@ def id_zeros(arr):
 for sub in SUBJ_IDS:
     
     # Load aligned and validated data
-    file_path = os.path.join(DAT_PATH, str(sub) + "_aligned_" + str(SDSCORE) + "SD_ET.csv")
+    file_path = os.path.join(DAT_PATH, str(sub) + "_aligned_" + str(SDSCORE) + "SD.csv")
     if not os.path.exists(file_path):
         continue
     dat = pd.read_csv(file_path)
@@ -203,5 +204,5 @@ for sub in SUBJ_IDS:
     
     
     # Save clean pupil data
-    filename = os.path.join(SAVE_PATH, str(sub) + "_interpolated_ET.csv")
-    # dat.to_csv(filename, index=False)
+    filename = os.path.join(SAVE_PATH, str(sub) + "_" + str(SDSCORE) + "SD_interpolated.csv")
+    dat.to_csv(filename, index=False)
