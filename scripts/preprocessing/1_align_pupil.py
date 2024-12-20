@@ -9,6 +9,7 @@ import math
 import mat73 # to load .mat files in MATLAB v7.3
 
 # ------------------ Hardcoded parameters ------------------ #
+os.chdir('/Users/jadyn/repo/paranoia/scripts/preprocessing')
 _THISDIR = os.getcwd()
 MAT_PATH = os.path.normpath(os.path.join(_THISDIR, '../../data/pupil/2_mat'))
 SAVE_PATH = os.path.normpath(os.path.join(_THISDIR, '../../data/pupil/3_processed/1_aligned'))
@@ -16,7 +17,7 @@ SAVE_PATH = os.path.normpath(os.path.join(_THISDIR, '../../data/pupil/3_processe
 if not os.path.exists(SAVE_PATH):
     os.makedirs(SAVE_PATH)
 
-SUBJ_IDS = range(1002, 1029)
+SUBJ_IDS = range(1002, 1037)
 SAMPLING_RATE = 500 # Hz
 # PUPIL_INFO = Area (Area or Diameter)
 
@@ -83,6 +84,8 @@ for sub in SUBJ_IDS:
     # Corresponding time stamp of the new array
     encoding_time = samples_time[pupil_start_idx:pupil_end_idx]
     encoding_time_corrected = encoding_time - encoding_time[0]
+    
+    print(f"Saving subject {sub} ... ")
     
     filename = os.path.join(SAVE_PATH, str(sub) + "_aligned_ET.csv")
     # pd.DataFrame({'pupilSize': pupilSize_encoding, 'time_in_ms': encoding_time, 'time_in_ms_corrected': encoding_time_corrected}).to_csv(filename, index=False)
