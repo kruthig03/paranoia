@@ -1,5 +1,5 @@
 # Authors: Kruthi Gollapudi (kruthig@uchicago.edu), Jadyn Park (jadynpark@uchicago.edu)
-# Last Edited: June 29, 2024
+# Last Edited: December 20, 2024
 # Description: This script takes in subjects' preprocessed pupil data and calculates the one-to-average ISC, testing significance
 # using bootstrapping
 
@@ -26,7 +26,7 @@ path = os.path.normpath('/Users/kruthigollapudi/src/paranoia/data/pupil/3_proces
 save_path = os.path.normpath('/Users/kruthigollapudi/src/paranoia/data/pupil/3_processed/6_isc')
 
 
-## FUNCTIONS HERE
+# ------------------ Define functions ------------------ # 
 
 def isc_loo(df, thisSub_idx):
     """

@@ -16,6 +16,24 @@ import scipy.io as sio
 import math
 import mat73 # to load .mat files in MATLAB v7.3
 
+# ------------------ Hardcoded parameters ------------------ #
+os.chdir('/Users/jadyn/repo/paranoia/scripts/preprocessing')
+_THISDIR = os.getcwd()
+DAT_PATH = os.path.normpath(os.path.join(_THISDIR, '../../data/pupil/3_processed/2_valid_pts'))
+MAT_PATH = os.path.normpath(os.path.join(_THISDIR, '../../data/pupil/2_mat'))
+SAVE_PATH = os.path.normpath(os.path.join(_THISDIR, '../../data/pupil/3_processed/3_interpolated'))
+
+if not os.path.exists(SAVE_PATH):
+    os.makedirs(SAVE_PATH)
+
+SUBJ_IDS = range(1002, 1029)
+
+# Standard score cutoffs
+SDSCORE = 2
+
+WINSIZE = 1000 ## cap for ms needed for interpolation
+SAMPLE_RATE = int(500) # Sampling frequency/rate(Hz)
+
 # ------------------ Define functions ------------------ # 
 def fetch_mat(mat_path, sub_id):
     """
@@ -98,24 +116,6 @@ def id_zeros(arr):
     result = np.where(absdiff == 1)[0].reshape(-1, 2)
     
     return result
-
-# ------------------ Hardcoded parameters ------------------ #
-os.chdir('/Users/jadyn/repo/paranoia/scripts/preprocessing')
-_THISDIR = os.getcwd()
-DAT_PATH = os.path.normpath(os.path.join(_THISDIR, '../../data/pupil/3_processed/2_valid_pts'))
-MAT_PATH = os.path.normpath(os.path.join(_THISDIR, '../../data/pupil/2_mat'))
-SAVE_PATH = os.path.normpath(os.path.join(_THISDIR, '../../data/pupil/3_processed/3_interpolated'))
-
-if not os.path.exists(SAVE_PATH):
-    os.makedirs(SAVE_PATH)
-
-SUBJ_IDS = range(1002, 1029)
-
-# Standard score cutoffs
-SDSCORE = 2
-
-WINSIZE = 1000 ## cap for ms needed for interpolation
-SAMPLE_RATE = int(500) # Sampling frequency/rate(Hz)
 
 # ------------------- Main ------------------ #
 for sub in SUBJ_IDS:
@@ -204,4 +204,4 @@ for sub in SUBJ_IDS:
     
     # Save clean pupil data
     filename = os.path.join(SAVE_PATH, str(sub) + "_interpolated_ET.csv")
-    dat.to_csv(filename, index=False)
+    # dat.to_csv(filename, index=False)

@@ -16,6 +16,19 @@ import os
 import scipy.stats as stats
 import math
 
+# ------------------ Hardcoded parameters ------------------ #
+_THISDIR = os.getcwd()
+DAT_PATH = os.path.normpath(os.path.join(_THISDIR, '../../data/pupil/3_processed/1_aligned'))
+SAVE_PATH = os.path.normpath(os.path.join(_THISDIR, '../../data/pupil/3_processed/2_valid_pts'))
+
+if not os.path.exists(SAVE_PATH):
+    os.makedirs(SAVE_PATH)
+
+SUBJ_IDS = range(1002, 1029)
+
+# Standard score for identifying cutoffs (SDSCORE = 1, 2, 3, ...)
+SDSCORE = 2
+
 # ------------------ Define functions ------------------ #
 def calculate_derivative(arr):
     """
@@ -72,19 +85,6 @@ def calc_prop_noisy(pupil_diff, cutoff):
     
     return prop_noisy
 
-# ------------------ Hardcoded parameters ------------------ #
-_THISDIR = os.getcwd()
-DAT_PATH = os.path.normpath(os.path.join(_THISDIR, '../../data/pupil/3_processed/1_aligned'))
-SAVE_PATH = os.path.normpath(os.path.join(_THISDIR, '../../data/pupil/3_processed/2_valid_pts'))
-
-if not os.path.exists(SAVE_PATH):
-    os.makedirs(SAVE_PATH)
-
-SUBJ_IDS = range(1002, 1029)
-
-# Standard score for identifying cutoffs (SDSCORE = 1, 2, 3, ...)
-SDSCORE = 2
-
 # ------------------ Initialize arrays ------------------ #
 pupil_diff_allsub = np.array([]) # To store everyone's derivative data
 
@@ -123,8 +123,8 @@ for sub in SUBJ_IDS:
         print(f"Participant {sub} excluded. {prop_noisy:.2f}% of the data are noisy :( ")
         
     # Save non-noisy participants' data
-    else:
-        dat.to_csv(os.path.join(SAVE_PATH, str(sub) + "_aligned_" + str(SDSCORE) + "SD_ET.csv"), index=False)
+    # else:
+        # dat.to_csv(os.path.join(SAVE_PATH, str(sub) + "_aligned_" + str(SDSCORE) + "SD_ET.csv"), index=False)
         # Excluded pts 1003, 1005, 1016, 1017, 1023
 
 

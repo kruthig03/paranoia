@@ -53,4 +53,4 @@ for sub in SUBJ_IDS:
     
     # Save downsampled data
     filename = os.path.join(SAVE_PATH, str(sub) + "_downsampled_ET.csv")
-    df_downsampled.to_csv(filename, index=False)
+    # df_downsampled.to_csv(filename, index=False)

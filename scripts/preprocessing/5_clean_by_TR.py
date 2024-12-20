@@ -30,6 +30,35 @@ import importlib
 import scipy.stats as stats
 import matplotlib.pyplot as plt
 
+# ------------------ Hardcoded parameters ------------------ #
+os.chdir('/Users/jadyn/repo/paranoia/scripts/preprocessing')
+_THISDIR = os.getcwd()
+DAT_PATH = os.path.normpath(os.path.join(_THISDIR, '../../data/pupil/3_processed/4_downsampled'))
+SAVE_PATH = os.path.normpath(os.path.join(_THISDIR, '../../data/pupil/3_processed/5_timelocked'))
+
+if not os.path.exists(SAVE_PATH):
+    os.makedirs(SAVE_PATH)
+
+TR = int(1000) # TR in ms 
+CURRENT_SAMPLE_HZ = int(50) # Currently sampled at 50 Hz
+CURRENT_SAMPLE_MS = 1/CURRENT_SAMPLE_HZ * 1000 # 50 Hz in ms (20 ms)
+
+SAMPLES_PER_EPOCH = int(TR / CURRENT_SAMPLE_MS) # Number of samples per epoch (segment)
+
+# Standard score for identifying cutoffs (SDSCORE = 1, 2, 3, ...)
+# For example, if SDSCORE = 3, any sample ± 3 s.d. outside the epoch mean are considered artifacts
+SDSCORE = 3
+
+# Cutoff for identifying artifactual samples
+# For example, if ARTIFACT_THRESHOLD = 0.4, an epoch with >40% artifactual samples is considered noisy
+ARTIFACT_THRESHOLD = 0.4 # Range: 0-1
+
+SUBJ_IDS = range(1002, 1029)
+
+# ------------------ Plot settings ------------------ # 
+plt.figure(figsize=(12, 3))
+THIS_SUB = int(1010) # Manually define which subject you want to view
+
 # ------------------ Define functions ------------------ # 
 def calc_clean_mean(arr, z, artifact_threshold):
     """
@@ -136,35 +165,6 @@ def interpolate_blinks(sBlink_idx, eBlink_idx, pupilSize):
         pupilSize[sBlink_idx:eBlink_idx+1] = afterInterpolate
         
     return pupilSize
-
-# ------------------ Hardcoded parameters ------------------ #
-os.chdir('/Users/jadyn/repo/paranoia/scripts/preprocessing')
-_THISDIR = os.getcwd()
-DAT_PATH = os.path.normpath(os.path.join(_THISDIR, '../../data/pupil/3_processed/4_downsampled'))
-SAVE_PATH = os.path.normpath(os.path.join(_THISDIR, '../../data/pupil/3_processed/5_timelocked'))
-
-if not os.path.exists(SAVE_PATH):
-    os.makedirs(SAVE_PATH)
-
-TR = int(1000) # TR in ms 
-CURRENT_SAMPLE_HZ = int(50) # Currently sampled at 50 Hz
-CURRENT_SAMPLE_MS = 1/CURRENT_SAMPLE_HZ * 1000 # 50 Hz in ms (20 ms)
-
-SAMPLES_PER_EPOCH = int(TR / CURRENT_SAMPLE_MS) # Number of samples per epoch (segment)
-
-# Standard score for identifying cutoffs (SDSCORE = 1, 2, 3, ...)
-# For example, if SDSCORE = 3, any sample ± 3 s.d. outside the epoch mean are considered artifacts
-SDSCORE = 3
-
-# Cutoff for identifying artifactual samples
-# For example, if ARTIFACT_THRESHOLD = 0.4, an epoch with >40% artifactual samples is considered noisy
-ARTIFACT_THRESHOLD = 0.4 # Range: 0-1
-
-SUBJ_IDS = range(1002, 1029)
-
-# ------------------ Plot settings ------------------ # 
-plt.figure(figsize=(12, 3))
-THIS_SUB = int(1010) # Manually define which subject you want to view
 
 # ------------------- Main ------------------ #
 # Create empty dictionary to store everyone's pupil data
