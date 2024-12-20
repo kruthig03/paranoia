@@ -153,10 +153,12 @@ CURRENT_SAMPLE_MS = 1/CURRENT_SAMPLE_HZ * 1000 # 50 Hz in ms (20 ms)
 SAMPLES_PER_EPOCH = int(TR / CURRENT_SAMPLE_MS) # Number of samples per epoch (segment)
 
 # Standard score for identifying cutoffs (SDSCORE = 1, 2, 3, ...)
+# For example, if SDSCORE = 3, any sample ± 3 s.d. outside the epoch mean are considered artifacts
 SDSCORE = 3
 
 # Cutoff for identifying artifactual samples
-ARTIFACT_THRESHOLD = 0.4 # Range: 0-1, an epoch with >40% artifactual samples is considered noisy
+# For example, if ARTIFACT_THRESHOLD = 0.4, an epoch with >40% artifactual samples is considered noisy
+ARTIFACT_THRESHOLD = 0.4 # Range: 0-1
 
 SUBJ_IDS = range(1002, 1029)
 
