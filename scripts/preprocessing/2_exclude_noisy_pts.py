@@ -17,17 +17,20 @@ import scipy.stats as stats
 import math
 
 # ------------------ Hardcoded parameters ------------------ #
+os.chdir('/Users/jadyn/repo/paranoia/scripts/preprocessing')
 _THISDIR = os.getcwd()
 DAT_PATH = os.path.normpath(os.path.join(_THISDIR, '../../data/pupil/3_processed/1_aligned'))
-SAVE_PATH = os.path.normpath(os.path.join(_THISDIR, '../../data/pupil/3_processed/2_valid_pts'))
+
+# Standard score for identifying cutoffs (SDSCORE = 1, 2, 3, ...)
+# The higher the SDSCORE, the more stringent the cutoff for noise and more participants will be included
+SDSCORE = 3
+
+SAVE_PATH = os.path.normpath(os.path.join(_THISDIR, '../../data/pupil/3_processed/2_valid_pts', str(SDSCORE) + "SD"))
 
 if not os.path.exists(SAVE_PATH):
     os.makedirs(SAVE_PATH)
-
-SUBJ_IDS = range(1002, 1029)
-
-# Standard score for identifying cutoffs (SDSCORE = 1, 2, 3, ...)
-SDSCORE = 2
+    
+SUBJ_IDS = range(1002, 1037)
 
 # ------------------ Define functions ------------------ #
 def calculate_derivative(arr):
@@ -123,9 +126,10 @@ for sub in SUBJ_IDS:
         print(f"Participant {sub} excluded. {prop_noisy:.2f}% of the data are noisy :( ")
         
     # Save non-noisy participants' data
-    # else:
-        # dat.to_csv(os.path.join(SAVE_PATH, str(sub) + "_aligned_" + str(SDSCORE) + "SD_ET.csv"), index=False)
-        # Excluded pts 1003, 1005, 1016, 1017, 1023
+    else:
+        dat.to_csv(os.path.join(SAVE_PATH, str(sub) + "_aligned_" + str(SDSCORE) + "SD.csv"), index=False)
+        # 2 SD: Excluded pts 1003, 1005, 1016, 1017, 1023
+        # 3 SD: Excluded pt 1023
 
 
 
