@@ -158,12 +158,6 @@ SDSCORE = 3
 # Cutoff for identifying artifactual samples
 ARTIFACT_THRESHOLD = 0.4 # Range: 0-1, an epoch with >40% artifactual samples is considered noisy
 
-# f_sample = 50  # sampling rate (downsampled to)
-# module_name = '3_interpolate_blinks'
-# module = importlib.import_module(module_name)
-# zero_runs = getattr(module, 'zero_runs')
-# interpolate_blinks = getattr(module, 'interpolate_blinks')
-
 SUBJ_IDS = range(1002, 1029)
 
 # ------------------ Plot settings ------------------ # 
