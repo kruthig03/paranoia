@@ -1,5 +1,5 @@
 # Authors: Kruthi Gollapudi (kruthig@uchicago.edu), Jadyn Park (jadynpark@uchicago.edu)
-# Last Edited: December 19, 2024
+# Last Edited: December 20, 2024
 # Description: This script performs steps (3) and (4) described in Murphy et al., 2014 (Hum. Brain Mapp.)
 #              Essentially, it removes noisy samples while performing downsampling to align pupil data to brain data
 
