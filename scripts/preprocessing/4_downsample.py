@@ -23,13 +23,13 @@ SAMPLE_RATE_MS = 1/SAMPLE_RATE_HZ * 1000 # 500 Hz in ms (2 ms)
 DOWNSAMPLE_RATE_HZ = int(50) # Downsample to 50 Hz
 DOWNSAMPLE_RATE_MS = 1/DOWNSAMPLE_RATE_HZ * 1000 # 50 Hz in ms (20 ms)
     
-SUBJ_IDS = range(1002, 1029)
+SUBJ_IDS = range(1002, 1037)
 
 # ------------------- Main ------------------ #
 for sub in SUBJ_IDS:
     
      # Load clean pupil data
-    file_path = os.path.join(DAT_PATH, str(sub) + "_interpolated_ET.csv")
+    file_path = os.path.join(DAT_PATH, str(sub) + "_2SD_interpolated.csv")
     if not os.path.exists(file_path):
         continue
     dat = pd.read_csv(file_path)
@@ -52,5 +52,5 @@ for sub in SUBJ_IDS:
     print("Subject", sub, "; num samples: ", len(time_in_ms_downsampled))
     
     # Save downsampled data
-    filename = os.path.join(SAVE_PATH, str(sub) + "_downsampled_ET.csv")
-    # df_downsampled.to_csv(filename, index=False)
+    filename = os.path.join(SAVE_PATH, str(sub) + "_2SD_downsampled.csv")
+    df_downsampled.to_csv(filename, index=False)

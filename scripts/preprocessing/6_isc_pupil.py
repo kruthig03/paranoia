@@ -1,7 +1,6 @@
 # Authors: Kruthi Gollapudi (kruthig@uchicago.edu), Jadyn Park (jadynpark@uchicago.edu)
 # Last Edited: December 20, 2024
-# Description: This script takes in subjects' preprocessed pupil data and calculates the one-to-average ISC, testing significance
-# using bootstrapping
+# Description: This script calculates one-to-average ISC
 
 
 import os
@@ -17,17 +16,19 @@ from statsmodels.stats.multitest import multipletests
 from sklearn.utils import check_random_state
 from numpy import interp
 
+# ------------------ Hardcoded parameters ------------------ #
+os.chdir('/Users/jadyn/repo/paranoia/scripts/preprocessing')
+_THISDIR = os.getcwd()
+DAT_PATH = os.path.normpath(os.path.join(_THISDIR, '../../data/pupil/3_processed/5_timelocked'))
+SAVE_PATH = os.path.normpath(os.path.join(_THISDIR, '../../data/pupil/3_processed/6_isc'))
 
-# Set data directory
-_thisDir = os.getcwd()
-path = os.path.normpath('/Users/kruthigollapudi/src/paranoia/data/pupil/3_processed/5_last_interp')
-
-# Set save directory
-save_path = os.path.normpath('/Users/kruthigollapudi/src/paranoia/data/pupil/3_processed/6_isc')
-
+if not os.path.exists(SAVE_PATH):
+    os.makedirs(SAVE_PATH)
+    
+SUBJ_IDS = range(1002, 1029)
+STORY_LENGTH = 1302 # Length of the story in seconds
 
 # ------------------ Define functions ------------------ # 
-
 def isc_loo(df, thisSub_idx):
     """
     One-to-average ISC
@@ -115,57 +116,74 @@ def phase_randomize(data, random_state=None):
     return np.real(ifft(fft_data, axis=0))
 
 
-# Define range of subject ids
-subj_ids = range(1002, 1030)
+# ------------------ Main ------------------ #
 
-# Iterate through subjects
-list_pupil = []
-
-for sub in subj_ids:
+# ========================================================================
+# Step 1. Append everyone's standardized pupil data in a single dataframe
+# ========================================================================
+allSub = []
+for sub in SUBJ_IDS:
     
-    filename = os.path.join(path, str(sub) + "_final_interp_ET.mat")
-   
-    try:
-        
-        mat = sio.loadmat(filename)
-        pupilSize = mat['pupilFinal'].flatten()
-        df = pd.DataFrame(
-            {'pupilDownsampled': pupilSize}
-        )
-        
-    except FileNotFoundError: # Skip subject if file doesn't exist
+    # Load time-locked pupil data
+    file_path = os.path.join(DAT_PATH, str(sub) + "_timelocked.csv")
+    if not os.path.exists(file_path):
         continue
+    dat = pd.read_csv(file_path)
+    
+    # Ensure that everyone's data is the same length
+    if len(dat) > STORY_LENGTH:
+        length_orig = len(dat)
+        dat = dat[:STORY_LENGTH] # Drop the last few seconds
+        length_new = len(dat)
+        print(f"Subject {sub} has length of {length_orig}. Truncated to {length_new}")
+    elif len(dat) < STORY_LENGTH:
+        length_orig = len(dat)
+        dat = dat.append([dat.iloc[-1]] * (STORY_LENGTH - len(dat)), ignore_index=True) # Pad with the last value
+        length_new = len(dat)
+        print(f"Subject {sub} has length of {length_orig}. Padded to {length_new}")
 
-    # Create 2Hz dataframe
-    colName = f'pupilDownsampled'
-    subName = f'{sub}'
+    # Store everyone's standardized pupil data in a df
+    pupilSize = stats.zscore(dat['pupilSize'])
+    allSub.append(pupilSize)
 
-    # Extract data from subject
-    thisSubj = df[colName]
-    thisSubj.name = subName # Rename
+allSub_df = pd.DataFrame(allSub).T # Transpose so that each column is a subject, each row is a TR
+allSub_df.columns = [str(sub) for sub in SUBJ_IDS if os.path.exists(os.path.join(DAT_PATH, str(sub) + "_timelocked.csv"))] # Rename columns
 
-    # Append to list
-    list_pupil.append(thisSubj)
 
-    pupilSize_by_sub = pd.concat([pd.Series(x) for x in list_pupil], axis=1)    
+# ======================================
+# Step 2. Calculate one-to-average ISC
+# This is done at the event level
+# ======================================
+isc = []
+subj_ids = allSub_df.columns
 
-total_nans = pd.DataFrame(pupilSize_by_sub).isnull().sum()
-print(total_nans)
-
-# Initialize arrays
-isc_loo_values = {}
-nSub = pupilSize_by_sub.shape[1]
-
-for i in range(nSub):
+for i, subid in enumerate(subj_ids):
+    
+    df = allSub_df
+    #i = thisSub_idx
+    thisSubj = df.iloc[:,i]
+    everyoneElse = df.drop(df.columns[[i]], axis=1)
+    
+    # Average everyone else's data
+    avg = everyoneElse.mean(axis=1)
+    
+    # Create a temporary df to store thisSubj and avg
+    df_temp = pd.DataFrame({'thisSubj': thisSubj, 'avg': avg})
+    
+    # Correlate this Subject's data with the average of everyone else's
+    corr = df_temp.corr(method='pearson').iloc[0,1]
     
     # Save the one-to-average correlation for each subject
-    isc_loo_values[pupilSize_by_sub.columns[i]] = isc_loo(pupilSize_by_sub, i)
+    # isc_loo_values[pupilSize_by_sub.columns[i]] = isc_loo(pupilSize_by_sub, i)
+    isc = np.append(isc, corr)
 
 # One-to-average ISC
-isc_df = pd.DataFrame([isc_loo_values], index=None)
+# isc_df = pd.DataFrame([isc_loo_values], index=None)
+isc_df = pd.DataFrame(isc, columns=['ISC'])
 
 # Fisher-z transform, average, inverse fisher-z transform
-isc_loo_z = np.arctanh(list(isc_loo_values.values()))
+# isc_loo_z = np.arctanh(list(isc_loo_values.values()))
+isc_loo_z = np.arctanh(isc)
 true_mean_z = np.nanmean(isc_loo_z)
 true_mean_r = np.tanh(true_mean_z) # True one-to-average ISC
 
@@ -174,19 +192,25 @@ print('True mean r value: ', true_mean_r)
 
 # Bootstrapping HERE
 
-# Permute bootstrapped samples
+
 nIt = 5000
 boot_ISC_mean = np.full([nIt,1], np.nan)
+
+pupilSize_by_sub = allSub_df
 
 for iteration in range(nIt):
 
     if iteration % 100 == 0:
         print('Iteration =', iteration)
 
-    for sub_idx in range(nSub):
+    for i, subid in enumerate(subj_ids):
 
         # This subject's time series data
-        thisSubj = pupilSize_by_sub.iloc[:, sub_idx]
+        thisSubj = pupilSize_by_sub.iloc[:, i]
+        
+        sub_idx = i
+        
+        
 
         # Interpolate all NaNs for phase randomization
         # This also pads edge cases (head/tail NaNs) with first/last occurring value

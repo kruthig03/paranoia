@@ -53,7 +53,7 @@ SDSCORE = 3
 # For example, if ARTIFACT_THRESHOLD = 0.4, an epoch with >40% artifactual samples is considered noisy
 ARTIFACT_THRESHOLD = 0.4 # Range: 0-1
 
-SUBJ_IDS = range(1002, 1029)
+SUBJ_IDS = range(1002, 1037)
 
 # ------------------ Plot settings ------------------ # 
 plt.figure(figsize=(12, 3))
@@ -173,7 +173,7 @@ pupil_allSub = {}
 for sub in SUBJ_IDS:
     
     # Load clean pupil data
-    file_path = os.path.join(DAT_PATH, str(sub) + "_downsampled_ET.csv")
+    file_path = os.path.join(DAT_PATH, str(sub) + "_2SD_downsampled.csv")
     if not os.path.exists(file_path):
         continue
     dat = pd.read_csv(file_path)
