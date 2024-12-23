@@ -200,6 +200,7 @@ for sub in SUBJ_IDS:
     
     # If there are epochs with a zero (i.e., epochs with >40% artifactual samples), 
     # replace the mean pupil diameter for that epoch via linear interpolation across adjacent clean epochs  
+    print("Subject", sub, ";", np.any(pupilTimeLocked == 0))
     if np.any(pupilTimeLocked == 0) == True:
         
         # Get the index of the zero epochs
@@ -219,7 +220,7 @@ for sub in SUBJ_IDS:
                 
     # Save data for each subject
     df = pd.DataFrame({'TR': TR, 'pupilSize': pupilTimeLocked})
-    # df.to_csv(os.path.join(SAVE_PATH, str(sub) + "_timelocked.csv"), index=False)
+    df.to_csv(os.path.join(SAVE_PATH, str(sub) + "_timelocked.csv"), index=False)
 
 
 
