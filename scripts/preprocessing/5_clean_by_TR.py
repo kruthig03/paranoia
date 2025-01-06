@@ -201,14 +201,16 @@ for sub in SUBJ_IDS:
     # If there are epochs with a zero (i.e., epochs with >40% artifactual samples), 
     # replace the mean pupil diameter for that epoch via linear interpolation across adjacent clean epochs  
     print("Subject", sub, ";", np.any(pupilTimeLocked == 0))
+    skip_interpolation = False
+    
     if np.any(pupilTimeLocked == 0) == True:
         
         # Get the index of the zero epochs
         zero_idx = np.where(pupilTimeLocked == 0)[0]
         
         # If the data begins or ends with a zero epoch, you cannot interpolate
-        if zero_idx==0 or zero_idx==len(pupilTimeLocked)-1:
-            continue
+        if zero_idx==0 or np.any(zero_idx==len(pupilTimeLocked)-1):
+            skip_interpolation = True
         else:
             for idx in zero_idx:
                 # Get the start and end of the zero epoch
@@ -254,6 +256,6 @@ plt.title('Pupil Size Time Course Across Subjects')
 
 # Display the plot
 plt.show()
-    
+
 
 
