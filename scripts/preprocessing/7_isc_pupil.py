@@ -26,7 +26,7 @@ if not os.path.exists(SAVE_PATH):
     
 SUBJ_IDS = range(1002, 1037)
 
-# Number of iterations for bootstrapping
+# Number of iterations for permutation test
 ITERATIONS = 5000
 
 # ------------------ Define functions ------------------ # 
