@@ -26,6 +26,9 @@ if not os.path.exists(SAVE_PATH):
     
 SUBJ_IDS = range(1002, 1037)
 
+# Number of iterations for bootstrapping
+ITERATIONS = 5000
+
 # ------------------ Define functions ------------------ # 
 def isc_loo(df, thisSub_idx):
     """
@@ -119,7 +122,10 @@ def phase_randomize(data, random_state=None):
 # ========================================================================
 # Step 1. Append everyone's standardized pupil data in a single dataframe
 # ========================================================================
-allSub = pd.DataFrame()
+
+# Create empty dataframe to store data
+allSub_df = pd.DataFrame()
+
 for sub in SUBJ_IDS:
     
     # Load time-locked pupil data
@@ -129,7 +135,9 @@ for sub in SUBJ_IDS:
     dat = pd.read_csv(file_path)
 
     pupilSize = np.array(dat['pupilSize'])
-    allSub.loc[:, sub] = pupilSize
+    
+    # Add data to dataframe
+    allSub_df.loc[:, sub] = pupilSize
 
 
 # ======================================
@@ -142,8 +150,11 @@ subj_ids = allSub_df.columns
 for i, subid in enumerate(subj_ids):
     
     df = allSub_df
-    #i = thisSub_idx
+    
+    # This subject's pupil size data
     thisSubj = df.iloc[:,i]
+    
+    # Everyone else's pupil size data
     everyoneElse = df.drop(df.columns[[i]], axis=1)
     
     # Average everyone else's data
@@ -156,85 +167,81 @@ for i, subid in enumerate(subj_ids):
     corr = df_temp.corr(method='pearson').iloc[0,1]
     
     # Save the one-to-average correlation for each subject
-    # isc_loo_values[pupilSize_by_sub.columns[i]] = isc_loo(pupilSize_by_sub, i)
     isc = np.append(isc, corr)
 
-# One-to-average ISC
-# isc_df = pd.DataFrame([isc_loo_values], index=None)
+# One-to-average ISC values
+# isc_df is a pandas dataframe where each row is a subject and the column is the correlation with the rest
 isc_df = pd.DataFrame(isc, columns=['ISC'])
 
-# Fisher-z transform, average, inverse fisher-z transform
-# isc_loo_z = np.arctanh(list(isc_loo_values.values()))
+# Fisher-z (r-to-z) transform 
 isc_loo_z = np.arctanh(isc)
+
+# Find the mean 
 true_mean_z = np.nanmean(isc_loo_z)
-true_mean_r = np.tanh(true_mean_z) # True one-to-average ISC
+
+# Inverse Fisher-z transform (z-to-r); true one-to-average ISC
+true_mean_r = np.tanh(true_mean_z) 
 
 print('True mean r value: ', true_mean_r)
 
 
-# Bootstrapping HERE
+# ======================================================================
+# Step 3. Find the statistical significance of the ISC using permutation
+# ======================================================================
+perm_ISC_mean = np.full([ITERATIONS,1], np.nan)
 
-
-nIt = 5000
-boot_ISC_mean = np.full([nIt,1], np.nan)
-
-pupilSize_by_sub = allSub_df
-
-for iteration in range(nIt):
+for iteration in range(ITERATIONS):
 
     if iteration % 100 == 0:
-        print('Iteration =', iteration)
+        print('Running iteration', iteration)
+    
+    # To save "null" ISC values
+    isc_perm = []
 
     for i, subid in enumerate(subj_ids):
-
-        # This subject's time series data
-        thisSubj = pupilSize_by_sub.iloc[:, i]
         
-        sub_idx = i
+        df = allSub_df
+
+        # This subject's pupil size
+        thisSubj = df.iloc[:,i]
         
-        
+        # Everyone else's pupil size
+        everyoneElse = df.drop(df.columns[[i]], axis=1)
 
-        # Interpolate all NaNs for phase randomization
-        # This also pads edge cases (head/tail NaNs) with first/last occurring value
-        nSample = len(thisSubj)
-        x = np.arange(0, len(thisSubj), 1) # x-coordinate of query points
-        nan_indices = np.isnan(thisSubj) 
-        thisSubj_interp = np.interp(x, x[~nan_indices], thisSubj[~nan_indices])
-
-        # Everyone else's time series data
-        everyoneElse = pupilSize_by_sub.drop(pupilSize_by_sub.columns[[sub_idx]], axis=1)
-
-        # Phase randomize this subject's (interpolated) data
-        thisSubj_rand = phase_randomize(thisSubj_interp)
+        # Phase randomize this subject's data
+        thisSubj_rand = phase_randomize(thisSubj)
 
         # Average everyone else's data
-        avg = everyoneElse.mean(axis=1, skipna=True)
+        avg = everyoneElse.mean(axis=1)
 
         # Create a temporary df to store thisSubj_rand and avg
         df_temp = pd.DataFrame({'thisSubj_rand': thisSubj_rand, 'avg': avg})
 
         # Correlate this subject's phase randomized data with the average of everyone else's
-        boot_ISC_loo = df_temp.corr(method='pearson').iloc[0,1]
+        perm_corr = df_temp.corr(method='pearson').iloc[0,1]
+        
+        # One-to-average ISC values for each subject with permuted data
+        isc_perm = np.append(isc_perm, perm_corr)
+        
+        # Fisher z-transform
+        perm_isc_z = np.arctanh(isc_perm)
+        
+        # Find the mean
+        fake_mean_z = np.nanmean(perm_isc_z)
+        
+        # Inverse Fisher-z transform
+        fake_mean_r = np.tanh(fake_mean_z)
+        
+        # Store for each iteration
+        perm_ISC_mean[iteration] = fake_mean_r
+        
+# perm_ISC_mean is now the null distribution of r (ISC) values
+# Calculate non-parameteric p-value (two tailed)
+p_onetail = (1+sum(perm_ISC_mean > true_mean_r)) / (1+ITERATIONS)
+p_opposite_tail = (1+sum(perm_ISC_mean < -true_mean_r)) / (1+ITERATIONS)
+p_twotail = p_onetail + p_opposite_tail
 
-        boot_ISC_mean[iteration] = np.tanh(np.nanmean(np.arctanh(boot_ISC_loo)))
-
-# Difference between actual and bootstrapped means
-boot_ISC_demean = boot_ISC_mean - true_mean_r
-
-# p-value
-p_value = np.mean(true_mean_r < boot_ISC_demean) + 1 / nIt
-print('P-value: ', p_value)
-print(f'ISC: {true_mean_r}, p-value: {p_value}')
-
-isc_final_df = pd.DataFrame(
-    {'P-value': p_value,
-    'True-Mean-R': true_mean_r},
-    index=[0]
-)
-
-filename = os.path.join(save_path, str(sub) + "_isc_values.csv")
-isc_final_df.to_csv(filename)
-
+print(f'ISC: {true_mean_r}, p-value: {p_twotail}')
 
 
 
