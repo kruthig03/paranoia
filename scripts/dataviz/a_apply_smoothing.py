@@ -1,5 +1,5 @@
 # Authors: Kruthi Gollapudi (kruthig@uchicago.edu), Jadyn Park (jadynpark@uchicago.edu)
-# Last Edited: December 20, 2024
+# Last Edited: April 9, 2025
 # Description: This script performs steps (3) and (4) described in Murphy et al., 2014 (Hum. Brain Mapp.)
 #              Essentially, it removes noisy samples while performing downsampling to align pupil data to brain data
 
@@ -29,6 +29,7 @@ import math
 import importlib
 import scipy.stats as stats
 import matplotlib.pyplot as plt
+from scipy.ndimage import gaussian_filter
 
 # ------------------ Hardcoded parameters ------------------ #
 os.chdir("/Users/jadyn/Github/paranoia/scripts/preprocessing")
@@ -242,6 +243,7 @@ for sub in SUBJ_IDS:
     # Save everyone's data in a dictionary
     pupil_allSub[sub] = {"TR": TR, "pupilSize": pupil_z}
 
+"""
     # Plot the time-locked pupil data
     if sub == THIS_SUB:
         plt.plot(
@@ -257,19 +259,28 @@ for sub in SUBJ_IDS:
             color="lightgray",
             linewidth=0.5,
         )
+"""
 
-# Calculate averate across all subjects
+
+# Calculate average across all subjects
 subs = list(pupil_allSub.keys())
 allSub_data_list = [data["pupilSize"] for data in pupil_allSub.values()]
 pupil_mean, sem = tolerant_mean(allSub_data_list)
 
+# Apply smoothing to average data
+pupil_smooth = gaussian_filter(pupil_mean, sigma=12)
+
 # Plot average data
-plt.plot(np.arange(len(pupil_mean)), pupil_mean, color="blue", linewidth=2)
+plt.plot(np.arange(len(pupil_smooth)), pupil_smooth, color="blue", linewidth=2)
 
 # Add labels and title
-plt.xlabel("Time (TR)")
-plt.ylabel("Pupil Size")
-plt.title("Pupil Size Time Course Across Subjects")
+plt.xlabel("Time (sec)")
+plt.ylabel("Pupil Size (z)")
+# plt.title("Pupil Size Time Course Across Subjects")
+
+fig, ax = plt.subplots()
+ax.spines['top'].set_visible(False)
+ax.spines['right'].set_visible(False)
 
 # Display the plot
 plt.show()
